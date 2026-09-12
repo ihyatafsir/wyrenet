@@ -3989,3 +3989,178 @@ html, body {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
+
+
+/* WyreNet Topbar Web3 Wallet Button */
+.topbar-wallet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 245, 155, 0.08);
+  border: 1px solid var(--border-emerald);
+  color: var(--matrix-green);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.topbar-wallet-pill:hover {
+  background: rgba(0, 245, 155, 0.16);
+  box-shadow: 0 0 12px rgba(0, 245, 155, 0.25);
+  transform: translateY(-1px);
+}
+.topbar-wallet-pill .wallet-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--matrix-green);
+  box-shadow: 0 0 8px var(--matrix-green);
+}
+
+/* WyreNet Comprehensive Web3 Wallet Modal */
+.wallet-modal-card {
+  width: 95%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #0a0f18;
+  border: 1px solid var(--border-emerald);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 245, 155, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.wallet-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 14px;
+}
+.wallet-modal-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wallet-balance-hero {
+  background: linear-gradient(135deg, rgba(0, 245, 155, 0.08) 0%, rgba(13, 20, 36, 0.8) 100%);
+  border: 1px solid rgba(0, 245, 155, 0.2);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wallet-balance-num {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.wallet-token-badge {
+  color: var(--matrix-green);
+  font-size: 0.9rem;
+  margin-left: 6px;
+}
+.wallet-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.wallet-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.wallet-tab-btn.active {
+  background: rgba(0, 245, 155, 0.15);
+  color: var(--matrix-green);
+  box-shadow: inset 0 0 0 1px var(--border-emerald);
+}
+.wallet-tab-panel {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+.wallet-tab-panel.active {
+  display: flex;
+}
+
+/* Classical Maktaba Modal */
+.maktaba-modal-card {
+  width: 95%;
+  max-width: 960px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #080c14;
+  border: 1px solid rgba(214, 158, 46, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(214, 158, 46, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.maktaba-filter-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.maktaba-filter-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #a0aec0;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.maktaba-filter-btn.active {
+  background: rgba(214, 158, 46, 0.15);
+  color: #f6e05e;
+  border-color: rgba(214, 158, 46, 0.4);
+}
+.maktaba-grid-v4v5 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.book-card-v4v5 {
+  background: #101624;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s;
+}
+.book-card-v4v5:hover {
+  border-color: rgba(214, 158, 46, 0.4);
+  transform: translateY(-2px);
+}

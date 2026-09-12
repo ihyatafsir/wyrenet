@@ -39,6 +39,9 @@ const connectedPeers = new Map();
 const relayedTransactions = [];
 const verifiedIdentities = new Map();
 const accountBalances = new Map();
+const seenTxHashes = new Set();
+const MAX_PEERS = 256;
+const MAX_BODY_BYTES = 256 * 1024; // 256 KB payload cap
 
 // Helper for MIME types
 const MIME_TYPES = {
@@ -142,6 +145,105 @@ const server = http.createServer(async (req, res) => {
       blockHeight: 485 + Math.floor((Date.now() - 1789230000000) / 1000),
       timestamp: Date.now()
     }));
+    return;
+  }
+
+  // Endpoint: EVM JSON-RPC 2.0 Endpoint (Chain ID 51950)
+  if ((pathname === "/api/wyrenet/rpc" || pathname === "/api/rpc") && req.method === "POST") {
+    let body = "";
+    req.on("data", c => body += c);
+    req.on("end", () => {
+      try {
+        const payload = JSON.parse(body || "{}");
+        const currentBlock = 485 + Math.floor((Date.now() - 1789230000000) / 2000);
+
+        function handleSingleRpc(p) {
+          const id = p.id !== undefined ? p.id : 1;
+          const method = p.method;
+          const params = p.params || [];
+
+          switch (method) {
+            case "eth_chainId":
+              return { jsonrpc: "2.0", id, result: "0xcaee" }; // 51950 in hex
+            case "net_version":
+              return { jsonrpc: "2.0", id, result: "51950" };
+            case "eth_blockNumber":
+              return { jsonrpc: "2.0", id, result: "0x" + currentBlock.toString(16) };
+            case "eth_getBalance": {
+              const addr = (params[0] || "").toLowerCase();
+              const balStr = accountBalances.get(addr) || "100.0000";
+              const balWei = BigInt(Math.floor(parseFloat(balStr) * 1e18));
+              return { jsonrpc: "2.0", id, result: "0x" + balWei.toString(16) };
+            }
+            case "eth_gasPrice":
+              return { jsonrpc: "2.0", id, result: "0x5d21dba00" }; // 25 gwei
+            case "eth_maxPriorityFeePerGas":
+              return { jsonrpc: "2.0", id, result: "0x3b9aca00" }; // 1 gwei
+            case "eth_estimateGas":
+              return { jsonrpc: "2.0", id, result: "0x5208" }; // 21000
+            case "eth_getTransactionCount":
+              return { jsonrpc: "2.0", id, result: "0x0" };
+            case "eth_getCode":
+              return { jsonrpc: "2.0", id, result: "0x" };
+            case "eth_sendRawTransaction": {
+              const rawTx = params[0] || "";
+              const crypto = require("crypto");
+              const txHash = "0x" + crypto.createHash("sha256").update(rawTx).digest("hex");
+              if (seenTxHashes.has(txHash)) {
+                return { jsonrpc: "2.0", id, error: { code: -32000, message: "Transaction already seen on Subnet 51950" } };
+              }
+              seenTxHashes.add(txHash);
+              if (seenTxHashes.size > 10000) seenTxHashes.delete(seenTxHashes.keys().next().value);
+              relayedTransactions.push({
+                txHash,
+                rawTx,
+                status: "CONFIRMED",
+                blockHeight: currentBlock,
+                timestamp: Date.now()
+              });
+              return { jsonrpc: "2.0", id, result: txHash };
+            }
+            case "eth_getTransactionReceipt": {
+              const txHash = params[0];
+              return {
+                jsonrpc: "2.0",
+                id,
+                result: {
+                  transactionHash: txHash,
+                  transactionIndex: "0x0",
+                  blockHash: "0x" + "a".repeat(64),
+                  blockNumber: "0x" + currentBlock.toString(16),
+                  from: "0x471c852d254a67f36c129f2386ca21c31840dea4",
+                  to: "0x48971c8363837918a0d0747647e22109b4046387",
+                  cumulativeGasUsed: "0x5208",
+                  gasUsed: "0x5208",
+                  contractAddress: null,
+                  logs: [],
+                  status: "0x1"
+                }
+              };
+            }
+            case "eth_call":
+              return { jsonrpc: "2.0", id, result: "0x" };
+            case "net_listening":
+              return { jsonrpc: "2.0", id, result: true };
+            case "net_peerCount":
+              return { jsonrpc: "2.0", id, result: "0x35" };
+            case "eth_syncing":
+              return { jsonrpc: "2.0", id, result: false };
+            default:
+              return { jsonrpc: "2.0", id, result: "0x0" };
+          }
+        }
+
+        const result = Array.isArray(payload) ? payload.map(handleSingleRpc) : handleSingleRpc(payload);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32700, message: err.message } }));
+      }
+    });
     return;
   }
 
@@ -619,6 +721,10 @@ const server = http.createServer(async (req, res) => {
 const wss = new WebSocket.Server({ port: WS_PORT });
 
 wss.on('connection', (ws, req) => {
+  if (connectedPeers.size >= MAX_PEERS) {
+    ws.close(1008, "Peer connection limit reached");
+    return;
+  }
   const peerId = 'peer_' + Math.random().toString(36).substring(2, 10);
   connectedPeers.set(peerId, ws);
   console.log(`[Mesh Relay] Peer connected: ${peerId} (Total: ${connectedPeers.size})`);

@@ -38,14 +38,14 @@
         <button class="rail-icon" title="Chat Stream" onclick="switchMainView('chat')" id="rail-btn-chat">
           <span class="icon-text" style="font-size:11px; font-weight:800;">CHAT</span>
         </button>
-        <button class="rail-icon wyrenet-l1-active" title="Avalanche Subnet 51950 Blockchain Vault" onclick="switchMainView('blockchain')" id="rail-btn-blockchain">
-          <span class="icon-text" style="font-size:11px; font-weight:800; color:#fc8181;">L1</span>
+        <button class="rail-icon wyrenet-l1-active" title="WyreNet L1 Crypto Wallet" onclick="openWalletModal()" id="rail-btn-blockchain">
+          <span class="icon-text" style="font-size:11px; font-weight:800; color:var(--matrix-green);">WLT</span>
         </button>
-        <button class="rail-icon" title="Classical Maktaba Library (40 Books of Ihya & Tafsir)" onclick="switchMainView('maktaba')" id="rail-btn-maktaba">
+        <button class="rail-icon" title="Classical Maktaba Library (v4 & v5 Translated)" onclick="openMaktabaModal()" id="rail-btn-maktaba">
           <span class="icon-text" style="font-size:11px; font-weight:800; color:var(--matrix-gold);">LIB</span>
         </button>
-        <button class="rail-icon" title="Sovereign Notary & Proof Mint" onclick="switchMainView('notary')" id="rail-btn-notary">
-          <span class="icon-text" style="font-size:11px; font-weight:800; color:var(--matrix-cyan);">SEAL</span>
+        <button class="rail-icon" title="Diagnostics & Telemetry" onclick="openModal('modal-diagnostics')" id="rail-btn-notary">
+          <span class="icon-text" style="font-size:11px; font-weight:800; color:var(--matrix-cyan);">DIAG</span>
         </button>
       </div>
 
@@ -142,12 +142,7 @@
                 <span class="subchannel-tree-icon">&boxur;</span>
                 <span class="channel-name">kalam-usul</span>
               </div>
-              <div class="subchannel-item" onclick="selectChannel('archive-razi', 'Historical & Legacy Archive of Imam Fakhr al-Din al-Razi - 32 Individual Volume Drafts')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">archive</span>
-                <span class="channel-badge" style="background:rgba(255, 255, 255, 0.05); color:#a0aec0; font-size:0.6rem;">LEGACY</span>
               </div>
-            </div>
 
             <!-- 2. Imam Abu Hamid al-Ghazali -->
             <div class="channel-item has-subchannels expanded" id="parent-chan-imam-abuhamid" onclick="toggleSubChannels('chan-imam-abuhamid')">
@@ -173,12 +168,7 @@
                 <span class="subchannel-tree-icon">&boxur;</span>
                 <span class="channel-name">suluk-adab</span>
               </div>
-              <div class="subchannel-item" onclick="selectChannel('ihya-archive', 'Historical Archive: Ihya Ulum al-Din Complete 40 Books Corpus & Dedicated Quarters')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">archive</span>
-                <span class="channel-badge" style="background:rgba(0, 245, 155, 0.1); color:#00f59b; font-size:0.6rem;">40 IHYA</span>
               </div>
-            </div>
 
             <!-- 3. Imam Yahya ibn Sharaf al-Nawawi -->
             <div class="channel-item has-subchannels expanded" id="parent-chan-imam-nawawi" onclick="toggleSubChannels('chan-imam-nawawi')">
@@ -192,10 +182,10 @@
               </div>
             </div>
             <div class="subchannel-container" id="subchannels-chan-imam-nawawi">
-              <div class="subchannel-item" onclick="selectChannel('nawawi-archive', 'Complete 22-Volume Legacy Corpus of Imam Yahya al-Nawawi (Riyad al-Salihin, Sharh Muslim, Rawdat al-Talibin)')">
+              <div class="subchannel-item" onclick="selectChannel('hadith-fiqh', 'Hadith, Adhkar & Sacred Fiqh (Riyad al-Salihin, Sharh Sahih Muslim, Al-Adhkar - Official v4 Editions)')">
                 <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">archive</span>
-                <span class="channel-badge" style="background:rgba(167, 139, 250, 0.1); color:#a78bfa; font-size:0.6rem;">22 VOL</span>
+                <span class="channel-name">hadith-fiqh</span>
+                <span class="channel-badge" style="background:rgba(167, 139, 250, 0.15); color:#a78bfa; font-size:0.6rem;">v4 EDITION</span>
               </div>
             </div>
 
@@ -327,10 +317,16 @@
             <!-- Voice & Video Call Action Buttons -->
             <button class="topbar-btn topbar-call-btn" id="btn-topbar-call-voice" title="Start Sovereign WebRTC Voice Call" onclick="startWebRtcCall('voice')"><span style="font-size:10px; font-weight:800;">CALL</span></button>
             <button class="topbar-btn topbar-call-btn" id="btn-topbar-call-video" title="Start Sovereign WebRTC Video Call" onclick="startWebRtcCall('video')"><span style="font-size:10px; font-weight:800;">VID</span></button>
+            <button class="topbar-btn" id="btn-topbar-maktaba" onclick="openMaktabaModal()" title="Classical Maktaba (v4 &amp; v5 Translated)"><span style="font-size:10px; font-weight:800; color:var(--matrix-gold);">LIB</span></button>
+            <!-- Dedicated Web3 Crypto Wallet Button -->
+            <button class="topbar-wallet-pill" id="btn-topbar-wallet" onclick="openWalletModal()" title="WyreNet L1 Crypto Wallet">
+              <span class="wallet-status-dot" id="topbar-wallet-dot"></span>
+              <span id="topbar-wallet-label">CONNECT WALLET</span>
+            </button>
             <!-- Live Network Indicator Badge -->
             <div class="mesh-badge" id="topbar-mesh-badge" title="P2P Connection Status">
               <span class="pulse-dot"></span>
-              <span class="badge-text" id="topbar-mesh-status">P2P MESH // MUTTASIL</span>
+              <span class="badge-text" id="topbar-mesh-status">P2P MESH // L1 51950</span>
             </div>
             <button class="topbar-btn" id="btn-toggle-members" title="Toggle Member List"><span style="font-size:10px; font-weight:800;">PEERS</span></button>
           </div>
@@ -541,23 +537,7 @@
             </div>
           </div>
 
-          <!-- DeepSeek Flash 4.1 Security Auditor Card -->
-          <div class="l1-card">
-            <div class="l1-card-header">
-              <div class="l1-card-title">
-                <span>DeepSeek Flash 4.1 Security Auditor</span>
-                <span class="l1-did-badge verified">AI SMART CONTRACT AUDIT</span>
-              </div>
-              <button class="btn-pill btn-pill-green" onclick="runAiSecurityAudit()">Run Security Audit</button>
-            </div>
-            <p style="color:var(--text-muted); font-size:0.85rem; margin:0; line-height:1.5;">
-              Analyze smart contracts, bytecode, EIP-712 typed signatures, and transaction calldata using deep reasoning models.
-            </p>
-            <textarea id="ai-audit-input" class="message-textarea" placeholder="Paste Solidity contract or ABI payload for deep inspection..." rows="3" style="padding:10px 14px; border-radius:12px;"></textarea>
-            <div id="ai-audit-output" style="display:none; background:#080b11; border:1px solid var(--border-subtle); padding:14px; border-radius:12px; font-family:var(--font-mono); font-size:0.8rem; color:#e2e8f0; line-height:1.6; max-height:220px; overflow-y:auto;"></div>
-          </div>
-
-        </div>
+          </div></div>
       </div>
 
       <!-- VIEW 3: CLASSICAL MAKTABA & SCHOLAR CHANNELS WINDOW -->
@@ -956,19 +936,185 @@
     </div>
   </div>
 
-  <!-- 9. Uniswap / AppKit Style Web3 Wallet Modal -->
-  <div class="uni-modal-overlay" id="uniswap-wallet-modal">
-    <div class="uni-modal-sheet">
-      <div class="uni-modal-header">
-        <div class="uni-modal-title" id="modal-dynamic-title">Connect a Web3 Wallet</div>
-        <button class="uni-close-btn" onclick="closeUniswapModal()">&times;</button>
+    <!-- 9. Sovereign Web3 Crypto Wallet Modal (Subnet 51950) -->
+  <div class="modal-overlay" id="modal-wallet">
+    <div class="wallet-modal-card">
+      <div class="wallet-modal-header">
+        <div class="wallet-modal-title">
+          <span style="color:var(--matrix-green); font-size:18px;">[WLT]</span>
+          <span>WyreNet Sovereign Crypto Wallet</span>
+          <span class="l1-did-badge verified" style="font-size:0.65rem;">L1 51950</span>
+        </div>
+        <button class="modal-close" onclick="closeWalletModal()">&times;</button>
       </div>
 
-      <div id="uni-injected-banner" style="display:none; background:rgba(0, 245, 155, 0.12); border:1px solid var(--border-emerald); border-radius:14px; padding:12px; align-items:center; justify-content:space-between;">
+      <!-- Injected Web3 Provider Detection Bar -->
+      <div id="injected-provider-status-bar" style="background:rgba(0, 245, 155, 0.08); border:1px solid var(--border-emerald); border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between;">
         <div>
-          <div style="font-weight:800; color:#fff; font-size:0.88rem;" id="injected-banner-title">Web3 Extension Detected</div>
-          <div style="font-size:0.72rem; color:var(--matrix-green);">Ready in current session</div>
+          <div style="font-weight:700; color:#fff; font-size:0.85rem;" id="injected-provider-title">Injected Web3 (MetaMask / Rabby / Core)</div>
+          <div style="font-size:0.72rem; color:var(--matrix-green);" id="injected-provider-sub">Ready for 1-click connection</div>
         </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-pill btn-pill-green" id="btn-connect-injected" onclick="connectInjectedWallet()">Connect Injected</button>
+          <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="switchOrAddWyreNetSubnet()">Switch L1 Chain</button>
+        </div>
+      </div>
+
+      <!-- Active Address Display & QR -->
+      <div style="background:#141926; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="flex:1; overflow:hidden;">
+          <div style="color:var(--text-muted); font-size:0.7rem; font-family:var(--font-mono);">ACTIVE SOVEREIGN ADDRESS (EVM DID)</div>
+          <code id="active-wallet-address" style="color:var(--matrix-green); font-family:var(--font-mono); font-size:0.82rem; word-break:break-all;">0x471c852d254a67f36c129f2386ca21c31840dea4</code>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <button class="btn-pill" style="background:rgba(255,255,255,0.05); color:#cbd5e1; padding:3px 8px; font-size:0.7rem;" onclick="copyActiveAddress()">Copy Address</button>
+            <button class="btn-pill" style="background:rgba(255,255,255,0.05); color:#cbd5e1; padding:3px 8px; font-size:0.7rem;" onclick="toggleAddressQr()">Show QR</button>
+          </div>
+        </div>
+        <div id="wallet-qrcode-box" style="display:none; background:#fff; padding:6px; border-radius:8px;"></div>
+      </div>
+
+      <!-- Live Balance & Faucet Card -->
+      <div class="wallet-balance-hero">
+        <div>
+          <div style="color:var(--text-muted); font-size:0.72rem; font-family:var(--font-mono);">NATIVE BALANCE (CHAIN ID 51950)</div>
+          <div style="display:flex; align-items:baseline; margin-top:2px;">
+            <span class="wallet-balance-num" id="modal-wyre-balance">100.0000</span>
+            <span class="wallet-token-badge">WYRE</span>
+          </div>
+          <div style="color:var(--text-muted); font-size:0.7rem; margin-top:4px;">WyreNet Sovereign Avalanche Subnet</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <button class="btn-pill btn-pill-green" id="btn-claim-faucet-modal" onclick="claimWyreFaucet()">Claim 100 WYRE Faucet</button>
+          <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#cbd5e1;" onclick="refreshWalletBalance()">Refresh Balance</button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs: Send / Seed Generator / Sign Challenge / RPC -->
+      <div class="wallet-tabs">
+        <button class="wallet-tab-btn active" onclick="switchWalletTab('send')" id="tab-btn-send">Send WYRE</button>
+        <button class="wallet-tab-btn" onclick="switchWalletTab('generator')" id="tab-btn-generator">12-Word Seed</button>
+        <button class="wallet-tab-btn" onclick="switchWalletTab('sign')" id="tab-btn-sign">Sign &amp; Verify</button>
+        <button class="wallet-tab-btn" onclick="switchWalletTab('rpc')" id="tab-btn-rpc">L1 Node Info</button>
+      </div>
+
+      <!-- TAB 1: SEND WYRE -->
+      <div class="wallet-tab-panel active" id="tab-panel-send">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <label style="color:var(--text-muted); font-size:0.75rem; font-family:var(--font-mono);">RECIPIENT ADDRESS (0x...)</label>
+          <input type="text" id="wallet-send-to" class="message-textarea" placeholder="0x48971c8363837918a0d0747647e22109b4046387" style="padding:10px 14px; border-radius:10px; height:auto;">
+          
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="color:var(--text-muted); font-size:0.75rem; font-family:var(--font-mono);">AMOUNT (WYRE)</label>
+              <input type="number" id="wallet-send-amount" class="message-textarea" placeholder="1.0" step="0.1" style="padding:10px 14px; border-radius:10px; height:auto; width:100%;">
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:center; padding-top:16px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.78rem; color:#fff;">
+                <input type="checkbox" id="wallet-send-gasless" checked style="accent-color:var(--matrix-green);">
+                <span>Gasless Sponsored (EIP-712)</span>
+              </label>
+            </div>
+          </div>
+
+          <button class="btn-pill btn-pill-green" style="margin-top:6px; justify-content:center; padding:12px;" onclick="sendWyreTransfer()">Send WYRE Transfer</button>
+          <div id="wallet-send-status" style="display:none; background:#080b11; border:1px solid var(--border-emerald); padding:10px; border-radius:10px; font-family:var(--font-mono); font-size:0.75rem; color:#fff;"></div>
+        </div>
+      </div>
+
+      <!-- TAB 2: BIP-39 12-WORD MNEMONIC GENERATOR -->
+      <div class="wallet-tab-panel" id="tab-panel-generator">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.8rem; color:var(--text-muted);">Self-Custodial Client-Side BIP-39 Wallet</span>
+          <button class="btn-pill btn-pill-green" style="padding:4px 10px; font-size:0.72rem;" onclick="generateBip39Wallet()">Generate New Mnemonic</button>
+        </div>
+        <div id="mnemonic-grid-display" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; background:#080b11; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.06); font-family:var(--font-mono); font-size:0.75rem;"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff; font-size:0.72rem;" onclick="copyMnemonicWords()">Copy 12 Words</button>
+          <button class="btn-pill btn-pill-green" style="font-size:0.72rem;" onclick="saveAndUseMnemonicWallet()">Use This Wallet</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <input type="text" id="wallet-import-input" class="message-textarea" placeholder="Import 12 words or 64-char private key..." style="flex:1; padding:8px 12px; border-radius:10px; height:auto; font-size:0.78rem;">
+          <button class="btn-pill" style="background:rgba(255,255,255,0.08); color:#fff;" onclick="importCustomMnemonicOrKey()">Import</button>
+        </div>
+      </div>
+
+      <!-- TAB 3: SIGN & VERIFY CHALLENGE (EIP-191) -->
+      <div class="wallet-tab-panel" id="tab-panel-sign">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <label style="color:var(--text-muted); font-size:0.75rem; font-family:var(--font-mono);">CHALLENGE TEXT (EIP-191 MESSAGE)</label>
+          <input type="text" id="wallet-challenge-input" class="message-textarea" value="WyreNet L1 Authentication: 1789230000" style="padding:8px 12px; border-radius:10px; height:auto; font-size:0.78rem;">
+          <button class="btn-pill btn-pill-green" style="padding:8px; font-size:0.78rem; justify-content:center;" onclick="signMessageChallenge()">Sign Message</button>
+          
+          <label style="color:var(--text-muted); font-size:0.75rem; font-family:var(--font-mono); margin-top:6px;">SIGNATURE OUTPUT</label>
+          <textarea id="wallet-signature-output" class="message-textarea" rows="2" style="padding:8px 12px; border-radius:10px; font-size:0.72rem; font-family:var(--font-mono); color:var(--matrix-green);"></textarea>
+          <button class="btn-pill" style="background:rgba(255,255,255,0.08); color:#fff; font-size:0.78rem; justify-content:center;" onclick="verifyMessageSignature()">Verify Signature</button>
+          <div id="wallet-verify-result" style="display:none; font-family:var(--font-mono); font-size:0.75rem; padding:8px; border-radius:8px;"></div>
+        </div>
+      </div>
+
+      <!-- TAB 4: L1 NODE INFO -->
+      <div class="wallet-tab-panel" id="tab-panel-rpc">
+        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; font-family:var(--font-mono); font-size:0.75rem;">
+          <div style="background:#141926; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+            <div style="color:var(--text-muted);">CHAIN ID</div>
+            <div style="color:var(--matrix-green); font-weight:800; font-size:0.9rem;">51950 (0xcaee)</div>
+          </div>
+          <div style="background:#141926; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+            <div style="color:var(--text-muted);">NATIVE TOKEN</div>
+            <div style="color:#f6e05e; font-weight:800; font-size:0.9rem;">WYRE (18 Decimals)</div>
+          </div>
+          <div style="background:#141926; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+            <div style="color:var(--text-muted);">MIN BASE FEE</div>
+            <div style="color:#60a5fa; font-weight:800; font-size:0.9rem;">25 GWEI</div>
+          </div>
+          <div style="background:#141926; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+            <div style="color:var(--text-muted);">BLOCK HEIGHT</div>
+            <div style="color:#fff; font-weight:800; font-size:0.9rem;" id="modal-rpc-block">486</div>
+          </div>
+        </div>
+        <div style="background:#141926; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05); margin-top:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="color:var(--text-muted); font-size:0.72rem; font-family:var(--font-mono);">JSON-RPC 2.0 URL</span>
+            <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff; padding:2px 8px; font-size:0.65rem;" onclick="copyRpcUrl()">Copy</button>
+          </div>
+          <code id="modal-rpc-url-text" style="color:var(--matrix-green); font-family:var(--font-mono); font-size:0.75rem; word-break:break-all;">http://127.0.0.1:5190/api/wyrenet/rpc</code>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 10. Classical Maktaba Modal (v4 & v5 Translated Editions Only) -->
+  <div class="modal-overlay" id="modal-maktaba">
+    <div class="maktaba-modal-card">
+      <div class="wallet-modal-header" style="border-bottom:1px solid rgba(214, 158, 46, 0.2);">
+        <div class="wallet-modal-title">
+          <span style="color:var(--matrix-gold); font-size:18px;">[LIB]</span>
+          <span>Classical Islamic Corpus (v4 &amp; v5 Translated Editions)</span>
+          <span class="l1-did-badge verified" style="background:rgba(214, 158, 46, 0.15); color:var(--matrix-gold); border-color:rgba(214, 158, 46, 0.3);">246 VOLUMES</span>
+        </div>
+        <button class="modal-close" onclick="closeMaktabaModal()">&times;</button>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="maktaba-filter-bar">
+        <button class="maktaba-filter-btn active" id="filter-mak-all" onclick="filterModalMaktaba('ALL')">All Volumes (246)</button>
+        <button class="maktaba-filter-btn" id="filter-mak-ihya" onclick="filterModalMaktaba('IHYA')">Ihya Ulum al-Din (40 Books)</button>
+        <button class="maktaba-filter-btn" id="filter-mak-razi" onclick="filterModalMaktaba('RAZI')">Tafsir al-Kabir (32 Volumes)</button>
+        <button class="maktaba-filter-btn" id="filter-mak-ghazali" onclick="filterModalMaktaba('GHAZALI')">Imam Ghazali (46 Books)</button>
+        <button class="maktaba-filter-btn" id="filter-mak-nawawi" onclick="filterModalMaktaba('NAWAWI')">Imam Nawawi (38 Books)</button>
+        <button class="maktaba-filter-btn" id="filter-mak-raghib" onclick="filterModalMaktaba('RAGHIB')">Imam Raghib (8 Books)</button>
+      </div>
+
+      <!-- Search Input -->
+      <input type="text" id="modal-maktaba-search" class="message-textarea" placeholder="Search manuscripts by title, author, or Arabic root (علم, صلاة, توكل, حجة)..." oninput="handleModalMaktabaSearch(this.value)" style="padding:10px 14px; border-radius:12px; height:auto;">
+
+      <!-- Manuscript Cards Grid -->
+      <div class="maktaba-grid-v4v5" id="modal-maktaba-grid">
+        <!-- Dynamically populated via wyrenet_runtime.js -->
+      </div>
+    </div>
+  </div>
         <button onclick="connectInjectedNow()" class="btn-pill btn-pill-green">Connect</button>
       </div>
 

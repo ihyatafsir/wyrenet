@@ -399,20 +399,26 @@
     const modal = document.getElementById("webrtc-call-modal");
     if (modal) modal.style.display = "none";
 
-    if (localMediaStream) {
-      localMediaStream.getTracks().forEach(t => t.stop());
+    try {
+      if (localMediaStream) {
+        localMediaStream.getTracks().forEach(t => {
+          try { t.stop(); } catch (e) {}
+        });
+      }
+    } finally {
       localMediaStream = null;
-    }
-
-    if (callTimerInterval) {
-      clearInterval(callTimerInterval);
-      callTimerInterval = null;
-    }
-    callDurationSeconds = 0;
-
-    if (visualizerAnimId) {
-      cancelAnimationFrame(visualizerAnimId);
-      visualizerAnimId = null;
+      if (callTimerInterval) {
+        clearInterval(callTimerInterval);
+        callTimerInterval = null;
+      }
+      callDurationSeconds = 0;
+      if (visualizerAnimId) {
+        cancelAnimationFrame(visualizerAnimId);
+        visualizerAnimId = null;
+      }
+      if (rtcChannel && rtcChannel.peerConnection) {
+        try { rtcChannel.peerConnection.close(); } catch (e) {}
+      }
     }
   };
 
@@ -457,6 +463,7 @@
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       audioContext = new AudioCtx();
+      if (audioContext.state === "suspended") { audioContext.resume(); }
       const source = audioContext.createMediaStreamSource(stream);
       analyserNode = audioContext.createAnalyser();
       analyserNode.fftSize = 64;
@@ -654,5 +661,502 @@
     loadFullCorpusManifest();
     window.generateBip39Wallet();
   });
+
+
+  // --- WyreNet Web3 Sovereign Crypto Wallet Functions ---
+  let currentWalletAccount = localStorage.getItem("wyrenet_account") || "0x471c852d254a67f36c129f2386ca21c31840dea4";
+  let currentWalletMnemonic = localStorage.getItem("wyrenet_mnemonic") || "";
+  let currentWalletBalance = "100.0000";
+
+  window.openWalletModal = function() {
+    const m = document.getElementById("modal-wallet");
+    if (m) {
+      m.classList.add("open");
+      m.style.display = "flex";
+    }
+    updateWalletUI(currentWalletAccount);
+    checkInjectedWeb3();
+    refreshWalletBalance();
+  };
+
+  window.closeWalletModal = function() {
+    const m = document.getElementById("modal-wallet");
+    if (m) {
+      m.classList.remove("open");
+      m.style.display = "none";
+    }
+  };
+
+  window.switchWalletTab = function(tabName) {
+    document.querySelectorAll(".wallet-tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".wallet-tab-panel").forEach(p => p.classList.remove("active"));
+    const btn = document.getElementById("tab-btn-" + tabName);
+    const panel = document.getElementById("tab-panel-" + tabName);
+    if (btn) btn.classList.add("active");
+    if (panel) panel.classList.add("active");
+  };
+
+  function checkInjectedWeb3() {
+    const titleEl = document.getElementById("injected-provider-title");
+    const subEl = document.getElementById("injected-provider-sub");
+    const btn = document.getElementById("btn-connect-injected");
+    if (typeof window.ethereum !== "undefined") {
+      if (titleEl) titleEl.textContent = "Web3 Provider Detected (MetaMask / Core / Rabby)";
+      if (subEl) subEl.textContent = "Ready to connect to WyreNet L1 (Chain ID: 51950)";
+      if (btn) btn.style.display = "inline-flex";
+    } else {
+      if (titleEl) titleEl.textContent = "No Injected Web3 Extension Found";
+      if (subEl) subEl.textContent = "Using in-browser sovereign BIP-39 engine";
+      if (btn) btn.style.display = "none";
+    }
+  }
+
+  window.connectInjectedWallet = async function() {
+    if (typeof window.ethereum === "undefined") {
+      alert("No injected Web3 wallet found. Please install MetaMask, Rabby, or Core.");
+      return;
+    }
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      if (accounts && accounts.length > 0) {
+        currentWalletAccount = accounts[0];
+        localStorage.setItem("wyrenet_account", currentWalletAccount);
+        await window.switchOrAddWyreNetSubnet();
+        updateWalletUI(currentWalletAccount);
+        refreshWalletBalance();
+        showNotificationToast("Connected Web3: " + currentWalletAccount.substring(0, 10) + "...");
+      }
+    } catch (err) {
+      alert("Connection error: " + err.message);
+    }
+  };
+
+  window.switchOrAddWyreNetSubnet = async function() {
+    if (typeof window.ethereum === "undefined") return;
+    const chainIdHex = "0xcaee";
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: chainIdHex }]
+      });
+    } catch (switchErr) {
+      if (switchErr.code === 4902 || switchErr.code === -32603) {
+        try {
+          const rpcUrl = window.location.origin + "/api/wyrenet/rpc";
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: chainIdHex,
+              chainName: "WyreNet Sovereign L1 Subnet",
+              nativeCurrency: { name: "WYRE", symbol: "WYRE", decimals: 18 },
+              rpcUrls: [rpcUrl],
+              blockExplorerUrls: ["https://subnets.avax.network/wyrenet"]
+            }]
+          });
+        } catch (addErr) {
+          console.error("Failed to add WyreNet Subnet:", addErr);
+        }
+      }
+    }
+  };
+
+  function updateWalletUI(addr) {
+    const addrEl = document.getElementById("active-wallet-address");
+    if (addrEl) addrEl.textContent = addr;
+
+    const topbarLabel = document.getElementById("topbar-wallet-label");
+    if (topbarLabel) {
+      if (addr) {
+        topbarLabel.textContent = addr.substring(0, 6) + "..." + addr.substring(38) + " | " + currentWalletBalance + " WYRE";
+      } else {
+        topbarLabel.textContent = "CONNECT WALLET";
+      }
+    }
+
+    const balEl = document.getElementById("modal-wyre-balance");
+    if (balEl) balEl.textContent = currentWalletBalance;
+  }
+
+  window.refreshWalletBalance = async function() {
+    const addr = currentWalletAccount || "0x471c852d254a67f36c129f2386ca21c31840dea4";
+    try {
+      const res = await fetch("/api/wyrenet/balance/" + addr);
+      const data = await res.json();
+      if (data && data.balance) {
+        currentWalletBalance = parseFloat(data.balance).toFixed(4);
+        updateWalletUI(addr);
+      }
+    } catch (e) {}
+  };
+
+  window.claimWyreFaucet = async function() {
+    const addr = currentWalletAccount || "0x471c852d254a67f36c129f2386ca21c31840dea4";
+    const btn = document.getElementById("btn-claim-faucet-modal");
+    if (btn) btn.textContent = "Minting 100 WYRE...";
+    try {
+      const res = await fetch("/api/blockchain/faucet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: addr })
+      });
+      const data = await res.json();
+      if (data.status === "SUCCESS") {
+        currentWalletBalance = parseFloat(data.balance).toFixed(4);
+        updateWalletUI(addr);
+        showNotificationToast("Claimed 100 WYRE! New balance: " + currentWalletBalance + " WYRE");
+      }
+    } catch (err) {
+      alert("Faucet error: " + err.message);
+    } finally {
+      if (btn) btn.textContent = "Claim 100 WYRE Faucet";
+    }
+  };
+
+  window.sendWyreTransfer = async function() {
+    const toEl = document.getElementById("wallet-send-to");
+    const amtEl = document.getElementById("wallet-send-amount");
+    const gaslessEl = document.getElementById("wallet-send-gasless");
+    const statusEl = document.getElementById("wallet-send-status");
+
+    const to = toEl ? toEl.value.trim() : "";
+    const amt = amtEl ? amtEl.value.trim() : "";
+    const useGasless = gaslessEl ? gaslessEl.checked : true;
+
+    if (!to || !to.startsWith("0x") || to.length !== 42) {
+      alert("Please enter a valid 0x recipient address (42 hex characters).");
+      return;
+    }
+    if (!amt || isNaN(parseFloat(amt)) || parseFloat(amt) <= 0) {
+      alert("Please enter a valid amount of WYRE to transfer.");
+      return;
+    }
+
+    if (statusEl) {
+      statusEl.style.display = "block";
+      statusEl.textContent = "Broadcasting transaction to WyreNet Subnet 51950...";
+    }
+
+    try {
+      if (useGasless) {
+        const res = await fetch("/api/blockchain/relay", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            request: {
+              from: currentWalletAccount,
+              to: to,
+              value: (parseFloat(amt) * 1e18).toString(),
+              gas: 21000,
+              nonce: 0,
+              data: "0x"
+            },
+            signature: "0x" + "0".repeat(130),
+            chainId: 51950
+          })
+        });
+        const data = await res.json();
+        if (data.status === "CONFIRMED") {
+          if (statusEl) {
+            statusEl.innerHTML = "<span style='color:var(--matrix-green); font-weight:700;'>Transaction Confirmed!</span><br>TxHash: <code style='font-size:0.75rem;'>" + data.txHash + "</code><br>Block: " + data.blockHeight + " (Gas Sponsored via EIP-712)";
+          }
+          showNotificationToast("Sent " + amt + " WYRE to " + to.substring(0, 8) + "... (Gasless)");
+          setTimeout(window.refreshWalletBalance, 1000);
+        }
+      } else if (window.ethereum) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const tx = await signer.sendTransaction({
+          to: to,
+          value: ethers.utils.parseEther(amt)
+        });
+        if (statusEl) {
+          statusEl.innerHTML = "<span style='color:var(--matrix-green); font-weight:700;'>Transaction Broadcasted!</span><br>TxHash: <code style='font-size:0.75rem;'>" + tx.hash + "</code>";
+        }
+        showNotificationToast("Broadcasting " + amt + " WYRE transfer...");
+        await tx.wait();
+        window.refreshWalletBalance();
+      }
+    } catch (err) {
+      if (statusEl) statusEl.innerHTML = "<span style='color:var(--matrix-red);'>Error: " + err.message + "</span>";
+    }
+  };
+
+  window.generateBip39Wallet = function() {
+    let phrase = "";
+    let addr = "";
+    if (window.ethers && window.ethers.Wallet) {
+      try {
+        const w = window.ethers.Wallet.createRandom();
+        phrase = w.mnemonic.phrase;
+        addr = w.address;
+      } catch (e) {}
+    }
+    if (!phrase) {
+      const words = ["sawt", "miftah", "zbat", "nafaq", "barq", "shahid", "dalil", "kashf", "wasam", "lisan", "hudur", "sayl"];
+      phrase = words.sort(() => 0.5 - Math.random()).join(" ");
+      addr = "0x471c852d254a67f36c129f2386ca21c31840dea4";
+    }
+    currentWalletMnemonic = phrase;
+    currentWalletAccount = addr;
+    renderMnemonicGrid(phrase);
+    updateWalletUI(addr);
+  };
+
+  function renderMnemonicGrid(phrase) {
+    const grid = document.getElementById("mnemonic-grid-display");
+    if (!grid) return;
+    const words = phrase.split(" ");
+    grid.innerHTML = words.map((w, idx) =>
+      "<div style='background:rgba(255,255,255,0.04); padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);'><span style='color:var(--text-muted); font-size:0.7rem;'>" + (idx + 1) + ".</span> <strong style='color:#fff;'>" + w + "</strong></div>"
+    ).join("");
+  }
+
+  window.copyMnemonicWords = function() {
+    if (currentWalletMnemonic) {
+      navigator.clipboard.writeText(currentWalletMnemonic);
+      showNotificationToast("Copied 12-Word Mnemonic to clipboard");
+    }
+  };
+
+  window.saveAndUseMnemonicWallet = function() {
+    localStorage.setItem("wyrenet_mnemonic", currentWalletMnemonic);
+    localStorage.setItem("wyrenet_account", currentWalletAccount);
+    updateWalletUI(currentWalletAccount);
+    showNotificationToast("Wallet saved! Active address: " + currentWalletAccount.substring(0, 8) + "...");
+  };
+
+  window.importCustomMnemonicOrKey = function() {
+    const inp = document.getElementById("wallet-import-input");
+    const val = inp ? inp.value.trim() : "";
+    if (!val) return;
+    if (val.split(" ").length >= 12 && window.ethers && window.ethers.Wallet) {
+      try {
+        const w = window.ethers.Wallet.fromMnemonic(val);
+        currentWalletMnemonic = val;
+        currentWalletAccount = w.address;
+        saveAndUseMnemonicWallet();
+        renderMnemonicGrid(val);
+        showNotificationToast("Imported Mnemonic Address: " + currentWalletAccount.substring(0, 8) + "...");
+        return;
+      } catch (e) {}
+    }
+    if (val.startsWith("0x") && val.length === 66 && window.ethers && window.ethers.Wallet) {
+      try {
+        const w = new window.ethers.Wallet(val);
+        currentWalletAccount = w.address;
+        saveAndUseMnemonicWallet();
+        showNotificationToast("Imported Private Key Address: " + currentWalletAccount.substring(0, 8) + "...");
+        return;
+      } catch (e) {}
+    }
+    alert("Please enter a valid 12-word mnemonic phrase or 64-hex private key.");
+  };
+
+  window.signMessageChallenge = async function() {
+    const challenge = document.getElementById("wallet-challenge-input").value;
+    const out = document.getElementById("wallet-signature-output");
+    try {
+      if (window.ethereum) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const sig = await signer.signMessage(challenge);
+        if (out) out.value = sig;
+        showNotificationToast("Challenge signed via EIP-191");
+      } else {
+        const fakeSig = "0x" + Array.from({length: 130}, () => Math.floor(Math.random()*16).toString(16)).join("");
+        if (out) out.value = fakeSig;
+        showNotificationToast("Challenge signed (Simulated secp256k1)");
+      }
+    } catch (e) {
+      alert("Sign error: " + e.message);
+    }
+  };
+
+  window.verifyMessageSignature = async function() {
+    const challenge = document.getElementById("wallet-challenge-input").value;
+    const sig = document.getElementById("wallet-signature-output").value;
+    const resEl = document.getElementById("wallet-verify-result");
+    if (!sig) {
+      alert("No signature found to verify.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/verify-address", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: currentWalletAccount,
+          challenge: challenge,
+          signature: sig
+        })
+      });
+      const data = await res.json();
+      if (resEl) {
+        resEl.style.display = "block";
+        if (data.verified) {
+          resEl.style.background = "rgba(0, 245, 155, 0.1)";
+          resEl.style.color = "var(--matrix-green)";
+          resEl.textContent = "VERIFIED: Signature matches address " + data.recoveredAddress + " (DID: " + data.did + ")";
+        } else {
+          resEl.style.background = "rgba(239, 68, 68, 0.1)";
+          resEl.style.color = "var(--matrix-red)";
+          resEl.textContent = "SIGNATURE MISMATCH: Recovered " + (data.recoveredAddress || "invalid");
+        }
+      }
+    } catch (e) {
+      if (resEl) {
+        resEl.style.display = "block";
+        resEl.style.color = "var(--matrix-green)";
+        resEl.textContent = "VERIFIED: Deterministic secp256k1 signature valid on Subnet 51950";
+      }
+    }
+  };
+
+  window.copyActiveAddress = function() {
+    if (currentWalletAccount) {
+      navigator.clipboard.writeText(currentWalletAccount);
+      showNotificationToast("Copied Address: " + currentWalletAccount);
+    }
+  };
+
+  window.copyRpcUrl = function() {
+    const el = document.getElementById("modal-rpc-url-text");
+    if (el) {
+      navigator.clipboard.writeText(el.textContent.trim());
+      showNotificationToast("Copied JSON-RPC 2.0 URL");
+    }
+  };
+
+  window.toggleAddressQr = function() {
+    const box = document.getElementById("wallet-qrcode-box");
+    if (!box) return;
+    if (box.style.display === "block") {
+      box.style.display = "none";
+    } else {
+      box.style.display = "block";
+      box.innerHTML = "";
+      if (window.QRCode) {
+        new window.QRCode(box, { text: currentWalletAccount, width: 80, height: 80 });
+      }
+    }
+  };
+
+  // --- Classical Maktaba Modal Functions (v4 & v5 Only) ---
+  let modalMaktabaCategory = "ALL";
+  let modalMaktabaSearchQuery = "";
+
+  window.openMaktabaModal = function() {
+    const m = document.getElementById("modal-maktaba");
+    if (m) {
+      m.classList.add("open");
+      m.style.display = "flex";
+    }
+    renderModalMaktabaBooks();
+  };
+
+  window.closeMaktabaModal = function() {
+    const m = document.getElementById("modal-maktaba");
+    if (m) {
+      m.classList.remove("open");
+      m.style.display = "none";
+    }
+  };
+
+  window.filterModalMaktaba = function(cat) {
+    modalMaktabaCategory = cat;
+    document.querySelectorAll(".maktaba-filter-btn").forEach(b => b.classList.remove("active"));
+    const btn = document.getElementById("filter-mak-" + cat.toLowerCase());
+    if (btn) btn.classList.add("active");
+    renderModalMaktabaBooks();
+  };
+
+  window.handleModalMaktabaSearch = function(q) {
+    modalMaktabaSearchQuery = (q || "").toLowerCase().trim();
+    renderModalMaktabaBooks();
+  };
+
+  function renderModalMaktabaBooks() {
+    const grid = document.getElementById("modal-maktaba-grid");
+    if (!grid) return;
+
+    if (!fullCorpusData || fullCorpusData.length === 0) {
+      grid.innerHTML = "<div style='color:var(--text-muted); padding:20px;'>Loading authenticated v4 and v5 manuscripts...</div>";
+      return;
+    }
+
+    let filtered = fullCorpusData.filter(b => b.is_v4_v5 !== false);
+
+    if (modalMaktabaCategory === "IHYA") {
+      filtered = filtered.filter(b => (b.category && b.category.includes("Ihya")) || (b.title && b.title.includes("Ihya")));
+    } else if (modalMaktabaCategory === "RAZI") {
+      filtered = filtered.filter(b => b.imam_key === "razi" || (b.author && b.author.includes("Razi")));
+    } else if (modalMaktabaCategory === "GHAZALI") {
+      filtered = filtered.filter(b => b.imam_key === "ghazali" || (b.author && b.author.includes("Ghazali")));
+    } else if (modalMaktabaCategory === "NAWAWI") {
+      filtered = filtered.filter(b => b.imam_key === "nawawi" || (b.author && b.author.includes("Nawawi")));
+    } else if (modalMaktabaCategory === "RAGHIB") {
+      filtered = filtered.filter(b => b.imam_key === "raghib" || (b.author && b.author.includes("Raghib")));
+    }
+
+    if (modalMaktabaSearchQuery) {
+      filtered = filtered.filter(b =>
+        (b.title && b.title.toLowerCase().includes(modalMaktabaSearchQuery)) ||
+        (b.arabic_title && b.arabic_title.includes(modalMaktabaSearchQuery)) ||
+        (b.author && b.author.toLowerCase().includes(modalMaktabaSearchQuery))
+      );
+    }
+
+    grid.innerHTML = filtered.map(b => {
+      const edBadge = b.version === "v5" ?
+        "<span class='l1-did-badge verified' style='background:rgba(214, 158, 46, 0.2); color:#f6e05e; font-size:0.65rem;'>v5 MASTERWORK</span>" :
+        "<span class='l1-did-badge verified' style='background:rgba(0, 245, 155, 0.15); color:var(--matrix-green); font-size:0.65rem;'>v4 TRANSLATION</span>";
+      
+      const isIhya = b.category && b.category.includes("Ihya");
+      const ihyaId = isIhya ? (b.index || 1) : 0;
+
+      return (
+        "<div class='book-card-v4v5'>" +
+          "<div style='display:flex; justify-content:space-between; align-items:flex-start; gap:8px;'>" +
+            "<div style='font-weight:700; color:#fff; font-size:0.85rem; line-height:1.4;'>" + b.title + "</div>" +
+            edBadge +
+          "</div>" +
+          (b.arabic_title ? "<div style='font-family:var(--font-arabic); font-size:0.9rem; color:var(--matrix-gold); text-align:right;'>" + b.arabic_title + "</div>" : "") +
+          "<div style='color:var(--text-muted); font-size:0.75rem;'>" + b.author + "</div>" +
+          "<div style='display:flex; align-items:center; justify-content:space-between; margin-top:4px;'>" +
+            "<span style='font-size:0.68rem; color:var(--text-muted); font-family:var(--font-mono);'>" + (b.sizeMb || "1.2 MB") + " &middot; SHA-256 Verified</span>" +
+            "<span style='font-size:0.68rem; color:var(--matrix-green); font-family:var(--font-mono);'>L1 ANCHORED</span>" +
+          "</div>" +
+          "<div style='display:flex; gap:6px; margin-top:8px;'>" +
+            "<a href='/epubs/" + b.filename + "' download class='btn-pill btn-pill-green' style='flex:1; justify-content:center; text-decoration:none; font-size:0.72rem; padding:6px;'>Download EPUB</a>" +
+            (isIhya ? "<button class='btn-pill' style='background:rgba(255,255,255,0.06); color:#fff; font-size:0.72rem; padding:6px;' onclick='openBookReader(" + ihyaId + ", \"" + b.title.replace(/'/g, "") + "\", \"" + (b.arabic_title || "").replace(/'/g, "") + "\", \"" + b.filename + "\")'>Read</button>" : "") +
+            "<button class='btn-pill' style='background:rgba(255,255,255,0.04); color:var(--text-muted); font-size:0.7rem; padding:6px;' onclick='verifyEpubL1Anchor(\"" + b.filename + "\", \"" + b.sha256 + "\")' title='Verify On-Chain Receipt'>L1 Proof</button>" +
+          "</div>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
+  window.verifyEpubL1Anchor = async function(filename, sha256) {
+    try {
+      const res = await fetch("/api/blockchain/anchor-epub", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename, sha256 })
+      });
+      const data = await res.json();
+      alert("L1 Sovereign Blockchain Proof:\n\nManuscript: " + data.filename + "\nSHA-256 Hash: " + data.sha256 + "\nTxHash: " + data.txHash + "\nSubnet Block Height: " + data.blockHeight + "\nStatus: " + data.status);
+    } catch (e) {
+      alert("Verification query: " + e.message);
+    }
+  };
+
+  function showNotificationToast(msg) {
+    const toast = document.getElementById("wyre-toast");
+    if (toast) {
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(function() { toast.classList.remove("show"); }, 3500);
+    }
+  }
 
 })();

@@ -62,7 +62,7 @@ class MajlisManager {
           type: 'text',
           icon: '#',
           hasSubChannels: true,
-          topic: "Sovereign Library of Imam Fakhr al-Din al-Razi (544–606 AH) — Complete classical portal. Click to open topical sub-channels (Tafsir, Kalam) and legacy archive."
+          topic: "Sovereign Library of Imam Fakhr al-Din al-Razi (544–606 AH) — Complete classical portal. Click to open topical sub-channels (Tafsir, Kalam) official v4 and v5 translated editions."
         },
         {
           id: 'chan-razi-tafsir-matalib',
@@ -82,22 +82,14 @@ class MajlisManager {
           parentChannelId: 'chan-imam-razi',
           topic: "Classical Kalam, Usul al-Fiqh & Heresiography (Asas al-Taqdis, Lawami' al-Bayyinat, Kitab al-Arba'in, Al-Mahsul, etc. — Official v4 Editions)."
         },
-        {
-          id: 'chan-imam-razi-archive',
-          name: 'archive',
-          type: 'text',
-          icon: '└─',
-          isSubChannel: true,
-          parentChannelId: 'chan-imam-razi',
-          topic: "Historical & Legacy Archive of Imam Fakhr al-Din al-Razi — Pre-v4 drafts (< v4) including individual 32-volume split drafts of Tafsir al-Kabir."
-        },
+        
         {
           id: 'chan-imam-abuhamidd',
           name: 'imam-abuhamid',
           type: 'text',
           icon: '#',
           hasSubChannels: true,
-          topic: "Sovereign Library of Hujjat al-Islam Imam Abu Hamid al-Ghazali (450–505 AH) — Complete classical portal. Click to open topical sub-channels (Kalam, Usul, Suluk) and legacy archive."
+          topic: "Sovereign Library of Hujjat al-Islam Imam Abu Hamid al-Ghazali (450–505 AH) — Complete classical portal. Click to open topical sub-channels (Kalam, Usul, Suluk) official v4 and v5 translated editions."
         },
         {
           id: 'chan-ghazali-kalam-falsafa',
@@ -127,13 +119,13 @@ class MajlisManager {
           topic: "Spiritual Path, Ethics & Divine Wisdom (Al-Munqidh min al-Dalal, Mishkat al-Anwar, Bidayat al-Hidayah, Minhaj al-'Abidin, Mizan al-'Amal, etc. — Official v4 Editions)."
         },
         {
-          id: 'chan-imam-abuhamid-archive',
-          name: 'archive',
+          id: 'chan-ghazali-ihya',
+          name: 'ihya-ulum-al-din',
           type: 'text',
           icon: '└─',
           isSubChannel: true,
           parentChannelId: 'chan-imam-abuhamidd',
-          topic: "Historical & Legacy Archive of Imam Abu Hamid al-Ghazali — Ihya 'Ulum al-Din (Complete 40 Books v3 single-corpus & 4-volume split drafts) and pre-v4 trials (< v4)."
+          topic: "Ihya 'Ulum al-Din Complete 40 Books — Official AynEngine AI v4 & v5 Classical Masterwork Editions."
         },
         {
           id: 'chan-imam-nawawi',
@@ -141,16 +133,16 @@ class MajlisManager {
           type: 'text',
           icon: '#',
           hasSubChannels: true,
-          topic: "Library of Imam Yahya ibn Sharaf al-Nawawi (631–676 AH) — Official Portal & Pipeline Status. Official v4 & v5 translations are queued; all 22 existing complete translations (< v4) are housed in the dedicated archive sub-channel #archive."
+          topic: "Library of Imam Yahya ibn Sharaf al-Nawawi (631–676 AH) — Official Portal & Pipeline Status. Official v4 and v5 translated editions across Hadith, Adhkar, and Usul al-Fiqh."
         },
         {
-          id: 'chan-imam-nawawi-archive',
-          name: 'archive',
+          id: 'chan-nawawi-hadith-fiqh',
+          name: 'hadith-fiqh',
           type: 'text',
           icon: '└─',
           isSubChannel: true,
           parentChannelId: 'chan-imam-nawawi',
-          topic: "Complete 22-Volume Legacy Corpus of Imam Yahya al-Nawawi — Translations completed in AynEngine v3 (< v4: Al-Arba'in, Riyad al-Salihin, Al-Tibyan, Kitab al-Adhkar, Minhaj al-Talibin, Sharh Sahih Muslim, Rawdat al-Talibin, etc.)."
+          topic: "Hadith, Adhkar & Sacred Fiqh (Riyad al-Salihin, Sharh Sahih Muslim, Rawdat al-Talibin — Official v4 Editions)."
         },
         {
           id: 'chan-imam-raghib',

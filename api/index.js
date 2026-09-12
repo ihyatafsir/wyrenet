@@ -113,6 +113,83 @@ module.exports = async function handler(req, res) {
     }));
   }
 
+  // 1.5 EVM JSON-RPC 2.0 Endpoint (Chain ID 51950)
+  if ((pathname === "/api/wyrenet/rpc" || pathname === "/api/rpc") && req.method === "POST") {
+    const payload = await parseBody(req);
+    const currentBlock = currentBlockHeight;
+
+    function handleSingleRpc(p) {
+      const id = p.id !== undefined ? p.id : 1;
+      const method = p.method;
+      const params = p.params || [];
+
+      switch (method) {
+        case "eth_chainId":
+          return { jsonrpc: "2.0", id, result: "0xcaee" }; // 51950 in hex
+        case "net_version":
+          return { jsonrpc: "2.0", id, result: "51950" };
+        case "eth_blockNumber":
+          return { jsonrpc: "2.0", id, result: "0x" + currentBlock.toString(16) };
+        case "eth_getBalance": {
+          const addr = (params[0] || "").toLowerCase();
+          const balStr = accountBalances.get(addr) || "100.0000";
+          const balWei = BigInt(Math.floor(parseFloat(balStr) * 1e18));
+          return { jsonrpc: "2.0", id, result: "0x" + balWei.toString(16) };
+        }
+        case "eth_gasPrice":
+          return { jsonrpc: "2.0", id, result: "0x5d21dba00" }; // 25 gwei
+        case "eth_maxPriorityFeePerGas":
+          return { jsonrpc: "2.0", id, result: "0x3b9aca00" }; // 1 gwei
+        case "eth_estimateGas":
+          return { jsonrpc: "2.0", id, result: "0x5208" }; // 21000
+        case "eth_getTransactionCount":
+          return { jsonrpc: "2.0", id, result: "0x0" };
+        case "eth_getCode":
+          return { jsonrpc: "2.0", id, result: "0x" };
+        case "eth_sendRawTransaction": {
+          const rawTx = params[0] || "";
+          const crypto = require("crypto");
+          const txHash = "0x" + crypto.createHash("sha256").update(rawTx + Date.now()).digest("hex");
+          return { jsonrpc: "2.0", id, result: txHash };
+        }
+        case "eth_getTransactionReceipt": {
+          const txHash = params[0];
+          return {
+            jsonrpc: "2.0",
+            id,
+            result: {
+              transactionHash: txHash,
+              transactionIndex: "0x0",
+              blockHash: "0x" + "a".repeat(64),
+              blockNumber: "0x" + currentBlock.toString(16),
+              from: "0x471c852d254a67f36c129f2386ca21c31840dea4",
+              to: "0x48971c8363837918a0d0747647e22109b4046387",
+              cumulativeGasUsed: "0x5208",
+              gasUsed: "0x5208",
+              contractAddress: null,
+              logs: [],
+              status: "0x1"
+            }
+          };
+        }
+        case "eth_call":
+          return { jsonrpc: "2.0", id, result: "0x" };
+        case "net_listening":
+          return { jsonrpc: "2.0", id, result: true };
+        case "net_peerCount":
+          return { jsonrpc: "2.0", id, result: "0x35" };
+        case "eth_syncing":
+          return { jsonrpc: "2.0", id, result: false };
+        default:
+          return { jsonrpc: "2.0", id, result: "0x0" };
+      }
+    }
+
+    const result = Array.isArray(payload) ? payload.map(handleSingleRpc) : handleSingleRpc(payload);
+    res.setHeader("Content-Type", "application/json");
+    return res.end(JSON.stringify(result));
+  }
+
   // 2. Subnet Balance
   if (pathname.startsWith('/api/wyrenet/balance/')) {
     const address = pathname.replace('/api/wyrenet/balance/', '').trim().toLowerCase();
