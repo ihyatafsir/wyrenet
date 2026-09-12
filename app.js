@@ -591,6 +591,51 @@ class WyreCrypto {
  */
 
 // --- Global App State ---
+function getDefaultSpaces() {
+  return [
+    {
+      id: 'space-public-mesh',
+      name: 'WyreNet Majlis',
+      arabicName: 'مَجْلِس وَايِرْنِت السِّيَادِيّ',
+      icon: '💬',
+      channels: [
+        { id: 'chan-general', name: 'general', type: 'text', icon: '#' },
+        { id: 'chan-protocol-dev', name: 'protocol-dev', type: 'text', icon: '#' },
+        { id: 'chan-announcements', name: 'announcements-nashr', type: 'text', icon: '#' },
+        { id: 'chan-aynengineai', name: 'aynengineai', type: 'text', icon: '#' },
+        { id: 'chan-imam-razi', name: 'imam-razi', type: 'text', icon: '#', hasSubChannels: true },
+        { id: 'chan-razi-tafsir-matalib', name: 'tafsir-matalib', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-razi' },
+        { id: 'chan-razi-kalam-usul', name: 'kalam-usul', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-razi' },
+        { id: 'chan-imam-abuhamidd', name: 'imam-abuhamid', type: 'text', icon: '#', hasSubChannels: true },
+        { id: 'chan-ghazali-kalam-falsafa', name: 'kalam-falsafa', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-abuhamidd' },
+        { id: 'chan-ghazali-usul-mantiq', name: 'usul-mantiq', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-abuhamidd' },
+        { id: 'chan-ghazali-suluk-adab', name: 'suluk-adab', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-abuhamidd' },
+        { id: 'chan-ghazali-ihya', name: 'ihya-ulum-al-din', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-abuhamidd' },
+        { id: 'chan-imam-nawawi', name: 'imam-nawawi', type: 'text', icon: '#', hasSubChannels: true },
+        { id: 'chan-nawawi-hadith-fiqh', name: 'hadith-fiqh', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-nawawi' },
+        { id: 'chan-imam-raghib', name: 'imam-raghib-al-isfahani', type: 'text', icon: '#', hasSubChannels: true },
+        { id: 'chan-raghib-lexicon-tafsir', name: 'lexicon-tafsir', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-raghib' },
+        { id: 'chan-raghib-akhlaq-adab', name: 'akhlaq-adab', type: 'text', icon: '└─', isSubChannel: true, parentChannelId: 'chan-imam-raghib' },
+        { id: 'chan-classical-heritage', name: 'classical-heritage', type: 'text', icon: '#' },
+        { id: 'chan-asrar-rashid', name: 'shaykh-asrar-rashid', type: 'text', icon: '#' },
+        { id: 'chan-hamza-yusuf', name: 'shaykh-hamza-yusuf', type: 'text', icon: '#' },
+        { id: 'chan-antigravity', name: '🤖 antigravity', type: 'text', icon: '🔒' },
+        { id: 'chan-voice-lounge', name: 'voice-lounge-sawt', type: 'voice', icon: '🔊' }
+      ]
+    },
+    {
+      id: 'space-cyber-citadel',
+      name: 'Miftah Citadel',
+      arabicName: 'قَلْعَة المِفْتَاح',
+      icon: '🛡️',
+      channels: [
+        { id: 'chan-keys-thaqb', name: 'keys-thaqb', type: 'text', icon: '#' },
+        { id: 'chan-nagham-dtmf', name: 'nagham-acoustic', type: 'voice', icon: '🎵' }
+      ]
+    }
+  ];
+}
+
 const state = window.state = {
   identity: null,
   crypto: {
@@ -601,7 +646,8 @@ const state = window.state = {
   ws: null,
   currentSpaceId: 'space-public-mesh',
   currentChannelId: 'chan-general',
-  spaces: [],
+  spaces: getDefaultSpaces(),
+  expandedImamChannelId: null,
   channels: [],
   peers: [],
   typingPeers: [],
@@ -643,6 +689,9 @@ const state = window.state = {
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
   initIdentity();
+  renderSpacesRail();
+  renderChannelsSidebar();
+  selectChannel(state.currentChannelId);
   initWebSocket();
   initEventListeners();
   initDtmfAudio();
@@ -1076,7 +1125,7 @@ function selectSpace(spaceId) {
 }
 
 function renderChannelsSidebar() {
-  const space = state.spaces.find(s => s.id === state.currentSpaceId);
+  const space = state.spaces.find(s => s.id === state.currentSpaceId) || state.spaces[0];
   if (!space) return;
 
   const textList = document.getElementById('text-channels-list');
@@ -1084,28 +1133,62 @@ function renderChannelsSidebar() {
   const dmList = document.getElementById('dm-channels-list');
   const dmCategory = document.getElementById('dm-category');
 
-  textList.innerHTML = '';
-  voiceList.innerHTML = '';
+  if (textList) textList.innerHTML = '';
+  if (voiceList) voiceList.innerHTML = '';
   if (dmList) dmList.innerHTML = '';
 
   let hasDMs = false;
 
-  space.channels.forEach(ch => {
-    const el = document.createElement('div');
-    el.className = `channel-item ${ch.id === state.currentChannelId ? 'active' : ''}`;
-    el.innerHTML = `
-      <span class="channel-icon">${ch.type === 'voice' ? '🔊' : (ch.id.startsWith('dm-') ? '🔒' : '#')}</span>
-      <span class="channel-name">${ch.name}</span>
-    `;
-    el.onclick = () => selectChannel(ch.id);
+  (space.channels || []).forEach(ch => {
+    const isSub = ch.isSubChannel || !!ch.parentChannelId;
+    const hasSubs = ch.hasSubChannels || ['chan-imam-razi', 'chan-imam-abuhamidd', 'chan-imam-nawawi', 'chan-imam-raghib'].includes(ch.id);
 
-    if (ch.id.startsWith('dm-')) {
+    // Sub-channels are ONLY seen / opened when their parent Imam channel is expanded!
+    if (isSub) {
+      if (ch.parentChannelId !== state.expandedImamChannelId) {
+        return; // Keep collapsed
+      }
+    }
+
+    const el = document.createElement('div');
+    const isExpanded = hasSubs && state.expandedImamChannelId === ch.id;
+
+    el.className = `channel-item ${ch.id === state.currentChannelId ? 'active' : ''} ${isSub ? 'subchannel-item' : ''} ${hasSubs ? 'has-subchannels' : ''}`;
+    const icon = ch.type === 'voice' ? '🔊' : (ch.id.startsWith('dm-') ? '🔒' : (isSub ? '└─' : (ch.icon || '#')));
+
+    let caretHtml = '';
+    if (hasSubs) {
+      caretHtml = `<span class="channel-expand-caret" title="Toggle sub-channels">${isExpanded ? '▾' : '▸'}</span>`;
+    }
+
+    el.innerHTML = `
+      <span class="channel-icon">${icon}</span>
+      <span class="channel-name">${ch.name}</span>
+      ${caretHtml}
+    `;
+
+    el.onclick = () => {
+      if (hasSubs) {
+        if (state.expandedImamChannelId === ch.id && state.currentChannelId === ch.id) {
+          state.expandedImamChannelId = null;
+          renderChannelsSidebar();
+          return;
+        }
+        state.expandedImamChannelId = ch.id;
+      }
+      selectChannel(ch.id);
+      if (typeof window.toggleMobileSidebar === 'function') {
+        window.toggleMobileSidebar(false);
+      }
+    };
+
+    if (ch.id.startsWith('dm-') || ch.id === 'chan-antigravity') {
       hasDMs = true;
       if (dmList) dmList.appendChild(el);
     } else if (ch.type === 'voice') {
-      voiceList.appendChild(el);
+      if (voiceList) voiceList.appendChild(el);
     } else {
-      textList.appendChild(el);
+      if (textList) textList.appendChild(el);
     }
   });
 
@@ -1345,15 +1428,24 @@ function appendMessageToDOM(packet) {
         else if (isMatalib) badgeTag = "Al-Matalib al-'Aliyyah";
         else if (isFiraq) badgeTag = "Firaq & Usul";
         else if (att.name.startsWith('asas_') || att.name.startsWith('lawami_') || att.name.startsWith('ismat_') || att.name.startsWith('macalim_') || att.name.startsWith('asrar_') || att.name.startsWith('al_qada_') || att.name.startsWith('qada_')) badgeTag = "Razi Kalam Treatise";
+        const epubUrl = att.data || `/epubs/${encodeURIComponent(att.name)}`;
         bodyHtml += `
-          <a href="${att.data}" download="${escapeHtml(att.name)}" class="msg-epub-card" title="Click to download ${escapeHtml(cleanName)}">
+          <div class="msg-epub-card">
             <div class="epub-card-header">
               <span class="epub-card-badge">${badgeTag}</span>
               <span class="epub-card-size">${formatBytes(att.size)}</span>
             </div>
             <div class="epub-card-title">${escapeHtml(cleanName)}</div>
             <div class="epub-card-filename">${escapeHtml(filename)}</div>
-          </a>
+            <div class="epub-card-actions">
+              <a href="${epubUrl}" download="${escapeHtml(att.name)}" class="epub-btn-download" title="Download ${escapeHtml(cleanName)}">
+                <span>⬇️</span> Download EPUB
+              </a>
+              <button class="epub-btn-read" onclick="openEpubInReader('${escapeHtml(att.name)}', '${escapeHtml(cleanName).replace(/'/g, "\\'")}', '${epubUrl}')" title="Read Online">
+                <span>📖</span> Read Online
+              </button>
+            </div>
+          </div>
         `;
       } else {
         bodyHtml += `
@@ -1816,25 +1908,34 @@ function playDtmfTone(key) {
 
 // --- 10. Drawer Navigation & Event Listeners ---
 function closeDrawers() {
-  document.getElementById('app-container')?.classList.remove('drawer-open');
-  document.getElementById('channels-sidebar')?.classList.remove('show-mobile');
-  document.getElementById('space-rail')?.classList.remove('show-mobile');
-  document.getElementById('members-sidebar')?.classList.remove('show-mobile');
-  document.getElementById('drawer-backdrop')?.classList.remove('active');
+  if (typeof window.toggleMobileSidebar === 'function') {
+    window.toggleMobileSidebar(false);
+  } else {
+    document.getElementById('app-container')?.classList.remove('drawer-open');
+    document.getElementById('channels-sidebar')?.classList.remove('show-mobile', 'mobile-open');
+    document.getElementById('space-rail')?.classList.remove('show-mobile');
+    document.getElementById('members-sidebar')?.classList.remove('show-mobile');
+    document.getElementById('drawer-backdrop')?.classList.remove('active');
+  }
 }
 
 function toggleChannelsDrawer() {
-  const app = document.getElementById('app-container');
-  const sidebar = document.getElementById('channels-sidebar');
-  const rail = document.getElementById('space-rail');
-  const backdrop = document.getElementById('drawer-backdrop');
-  document.getElementById('members-sidebar')?.classList.remove('show-mobile');
+  if (typeof window.toggleMobileSidebar === 'function') {
+    window.toggleMobileSidebar();
+  } else {
+    const app = document.getElementById('app-container');
+    const sidebar = document.getElementById('channels-sidebar');
+    const rail = document.getElementById('space-rail');
+    const backdrop = document.getElementById('drawer-backdrop');
+    document.getElementById('members-sidebar')?.classList.remove('show-mobile');
 
-  if (sidebar) {
-    const isShowing = sidebar.classList.toggle('show-mobile');
-    if (rail) rail.classList.toggle('show-mobile', isShowing);
-    if (app) app.classList.toggle('drawer-open', isShowing);
-    if (backdrop) backdrop.classList.toggle('active', isShowing);
+    if (sidebar) {
+      const isShowing = sidebar.classList.toggle('show-mobile');
+      sidebar.classList.toggle('mobile-open', isShowing);
+      if (rail) rail.classList.toggle('show-mobile', isShowing);
+      if (app) app.classList.toggle('drawer-open', isShowing);
+      if (backdrop) backdrop.classList.toggle('active', isShowing);
+    }
   }
 }
 
@@ -2095,7 +2196,10 @@ function initEventListeners() {
   // Mobile drawer toggles & Close buttons
   const toggleSidebarBtn = document.getElementById('btn-toggle-sidebar');
   if (toggleSidebarBtn) {
-    toggleSidebarBtn.addEventListener('click', toggleChannelsDrawer);
+    toggleSidebarBtn.onclick = function(e) {
+      if (e) e.preventDefault();
+      toggleChannelsDrawer();
+    };
   }
 
   const closeSidebarBtn = document.getElementById('btn-close-sidebar');
@@ -4561,3 +4665,15 @@ window.acceptIncomingCall = acceptIncomingCall;
 window.rejectIncomingCall = declineIncomingCall;
 window.declineIncomingCall = declineIncomingCall;
 window.endActiveCall = endActiveCall;
+
+window.openEpubInReader = function(filename, title, url) {
+  if (typeof window.openBookReader === 'function') {
+    if (filename && filename.includes('ihya')) {
+      window.openBookReader(1, title, "إحياء علوم الدين - الإمام أبو حامد الغزالي", filename);
+    } else {
+      window.openBookReader(1, title, title, filename);
+    }
+  } else {
+    window.location.href = url || `/epubs/${filename}`;
+  }
+};

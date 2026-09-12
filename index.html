@@ -67,11 +67,12 @@
     </nav>
 
     <!-- 2. CHANNELS SIDEBAR: GHURAF -->
+    <div id="mobile-sidebar-backdrop" class="mobile-backdrop" onclick="toggleMobileSidebar(false)"></div>
     <aside class="channels-sidebar" id="channels-sidebar">
       <!-- Space Header -->
       <div class="space-header" id="space-header">
         <div class="space-title-wrap">
-          <button class="mobile-close-sidebar-btn" id="btn-close-sidebar" onclick="toggleMobileSidebar()" title="Back to Chat">&larr;</button>
+          <button class="mobile-close-sidebar-btn" id="btn-close-sidebar" onclick="toggleMobileSidebar(false)" title="Back to Chat">&larr;</button>
           <div>
             <h2 class="space-title" id="current-space-name" style="display:flex; align-items:center; gap:6px;">
               <span>WYRENET</span>
@@ -85,7 +86,6 @@
 
       <!-- Channels List Categories -->
       <div class="channels-scroller" id="channels-scroller">
-        
         <!-- Text Channels Category -->
         <div class="channel-category" id="cat-text-channels">
           <div class="category-header" onclick="toggleCategory('cat-text-channels')">
@@ -93,155 +93,14 @@
             <button class="add-channel-btn" id="btn-add-text-channel" onclick="event.stopPropagation(); openModal('modal-create-channel')" title="Create Text Channel">+</button>
           </div>
           <div class="category-channels" id="text-channels-list">
-            <div class="channel-item active" onclick="selectChannel('general', 'General mesh broadcasts and consensus pings')">
-              <span class="hash-icon">#</span>
-              <span class="channel-name">general</span>
-              <span class="channel-badge" style="background:rgba(0, 245, 155, 0.15); color:#00f59b; font-size:0.65rem;">L1</span>
-            </div>
-            <div class="channel-item" onclick="selectChannel('announcements', 'Protocol upgrades, hard forks and release milestones')">
-              <span class="hash-icon">#</span>
-              <span class="channel-name">announcements</span>
-              <span class="channel-badge" style="background:rgba(229, 62, 62, 0.15); color:#fc8181; font-size:0.65rem;">CORE</span>
-            </div>
-            <div class="channel-item" onclick="selectChannel('dev-mesh', 'Peer routing, double-ratchet cipher and ZBAT telemetry')">
-              <span class="hash-icon">#</span>
-              <span class="channel-name">dev-mesh</span>
-            </div>
-            <div class="channel-item" onclick="selectChannel('p2p-ops', 'ZBAT, Miftah and Nafaq route performance')">
-              <span class="hash-icon">#</span>
-              <span class="channel-name">p2p-ops</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Scholar & Classical Heritage Channels (WyreSup Sovereign Hierarchy) -->
-        <div class="channel-category" id="cat-scholar-channels">
-          <div class="category-header" onclick="toggleCategory('cat-scholar-channels')">
-            <span class="category-title"><span class="chevron">&blacktriangledown;</span> [SCHOLAR] HERITAGE CHANNELS</span>
-          </div>
-          <div class="category-channels" id="scholar-channels-list">
-            
-            <!-- 1. Imam Fakhr al-Din al-Razi -->
-            <div class="channel-item has-subchannels expanded" id="parent-chan-imam-razi" onclick="toggleSubChannels('chan-imam-razi')">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="hash-icon">[R]</span>
-                <span class="channel-name">imam-razi</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="channel-badge" style="background:rgba(96, 165, 250, 0.15); color:#60a5fa; font-size:0.65rem;">109 BKS</span>
-                <span class="subchannel-chevron" id="chevron-chan-imam-razi">&#9654;</span>
-              </div>
-            </div>
-            <div class="subchannel-container" id="subchannels-chan-imam-razi">
-              <div class="subchannel-item" onclick="selectChannel('tafsir-matalib', 'Tafsir al-Kabir 32-in-1 Unified Masterwork & Al-Matalib al-Aliyyah Vols 1-9 (AynEngine v4)')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">tafsir-matalib</span>
-                <span class="channel-badge" style="background:rgba(96, 165, 250, 0.1); color:#93c5fd; font-size:0.6rem;">32 VOL</span>
-              </div>
-              <div class="subchannel-item" onclick="selectChannel('kalam-usul', 'Classical Kalam, Usul al-Fiqh & Heresiography (Asas al-Taqdis, Lawami, Mahsul, Arbain)')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">kalam-usul</span>
-              </div>
-              </div>
-
-            <!-- 2. Imam Abu Hamid al-Ghazali -->
-            <div class="channel-item has-subchannels expanded" id="parent-chan-imam-abuhamid" onclick="toggleSubChannels('chan-imam-abuhamid')">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="hash-icon">[G]</span>
-                <span class="channel-name">imam-abuhamid</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="channel-badge" style="background:rgba(246, 173, 85, 0.15); color:#f6ad55; font-size:0.65rem;">46 BKS</span>
-                <span class="subchannel-chevron" id="chevron-chan-imam-abuhamid">&#9654;</span>
-              </div>
-            </div>
-            <div class="subchannel-container" id="subchannels-chan-imam-abuhamid">
-              <div class="subchannel-item" onclick="selectChannel('kalam-falsafa', 'Kalam, Philosophy & Theological Polemics (Tahafut al-Falasifa, Al-Iqtisad, Maqasid, Qawaid)')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">kalam-falsafa</span>
-              </div>
-              <div class="subchannel-item" onclick="selectChannel('usul-mantiq', 'Legal Theory & Classical Logic (Al-Mustasfa, Shifa al-Ghalil, Miyar al-Ilm, Mihakk)')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">usul-mantiq</span>
-              </div>
-              <div class="subchannel-item" onclick="selectChannel('suluk-adab', 'Spiritual Path, Ethics & Divine Wisdom (Al-Munqidh, Mishkat al-Anwar, Bidayat al-Hidayah, Mizan)')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">suluk-adab</span>
-              </div>
-              </div>
-
-            <!-- 3. Imam Yahya ibn Sharaf al-Nawawi -->
-            <div class="channel-item has-subchannels expanded" id="parent-chan-imam-nawawi" onclick="toggleSubChannels('chan-imam-nawawi')">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="hash-icon">[N]</span>
-                <span class="channel-name">imam-nawawi</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="channel-badge" style="background:rgba(167, 139, 250, 0.15); color:#a78bfa; font-size:0.65rem;">38 BKS</span>
-                <span class="subchannel-chevron" id="chevron-chan-imam-nawawi">&#9654;</span>
-              </div>
-            </div>
-            <div class="subchannel-container" id="subchannels-chan-imam-nawawi">
-              <div class="subchannel-item" onclick="selectChannel('hadith-fiqh', 'Hadith, Adhkar & Sacred Fiqh (Riyad al-Salihin, Sharh Sahih Muslim, Al-Adhkar - Official v4 Editions)')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">hadith-fiqh</span>
-                <span class="channel-badge" style="background:rgba(167, 139, 250, 0.15); color:#a78bfa; font-size:0.6rem;">v4 EDITION</span>
-              </div>
-            </div>
-
-            <!-- 4. Imam al-Raghib al-Isfahani -->
-            <div class="channel-item has-subchannels expanded" id="parent-chan-imam-raghib" onclick="toggleSubChannels('chan-imam-raghib')">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="hash-icon">[I]</span>
-                <span class="channel-name">imam-raghib-al-isfahani</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="channel-badge" style="background:rgba(52, 211, 153, 0.15); color:#34d399; font-size:0.65rem;">8 BKS</span>
-                <span class="subchannel-chevron" id="chevron-chan-imam-raghib">&#9654;</span>
-              </div>
-            </div>
-            <div class="subchannel-container" id="subchannels-chan-imam-raghib">
-              <div class="subchannel-item" onclick="selectChannel('lexicon-tafsir', 'Quranic Lexicography & Exegesis (Al-Mufradat fi Gharib al-Quran, Jami al-Tafsir)')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">lexicon-tafsir</span>
-              </div>
-              <div class="subchannel-item" onclick="selectChannel('akhlaq-adab', 'Ethical Philosophy & Adab (Al-Dhariah ila Makarim al-Shariah, Tafsil al-Nashatayn, Muhadarat)')">
-                <span class="subchannel-tree-icon">&boxur;</span>
-                <span class="channel-name">akhlaq-adab</span>
-              </div>
-            </div>
-
-            <!-- 5. Classical Heritage & Scholars -->
-            <div class="channel-item" onclick="selectChannel('classical-heritage', 'Classical Islamic Heritage: Kitab al-Shifa (Qadi Iyad), Al-Futuhat al-Makkiyya (Ibn Arabi), Sunan al-Muhtadin')">
-              <span class="hash-icon">[H]</span>
-              <span class="channel-name">classical-heritage</span>
-              <span class="channel-badge" style="background:rgba(251, 191, 36, 0.15); color:#fbbf24; font-size:0.65rem;">45 BKS</span>
-            </div>
-            <div class="channel-item" onclick="selectChannel('aynengineai', 'AynEngine AI Sovereign Translation & Coding Engine - 5 Classical Epistemic Pillars & DeepSeek Flash 4.1')">
-              <span class="hash-icon">[&fnof;]</span>
-              <span class="channel-name">aynengineai</span>
-              <span class="channel-badge" style="background:rgba(0, 245, 155, 0.2); color:#00f59b; font-size:0.65rem;">AI CORE</span>
-            </div>
-            <div class="channel-item" onclick="selectChannel('asrar-rashid', 'Shaykh Asrar Rashid - Contemporary Kalam, Logic & Kalam Jadid')">
-              <span class="hash-icon">[A]</span>
-              <span class="channel-name">shaykh-asrar-rashid</span>
-            </div>
-            <div class="channel-item" onclick="selectChannel('ahmad-durrah', 'Shaykh Ahmad Durrah - Classical Ashari / Maturidi Didactic Studies')">
-              <span class="hash-icon">[D]</span>
-              <span class="channel-name">shaykh-ahmad-durrah</span>
-            </div>
-            <div class="channel-item" onclick="selectChannel('hamza-yusuf', 'Shaykh Hamza Yusuf - Classical Humanities, Logic & Zaytuna Curriculum')">
-              <span class="hash-icon">[Y]</span>
-              <span class="channel-name">shaykh-hamza-yusuf</span>
-            </div>
-
+            <!-- Dynamic Channels rendered via WyreSup hierarchy -->
           </div>
         </div>
 
         <!-- Direct DMs Category -->
-        <div class="channel-category" id="dm-category">
+        <div class="channel-category" id="dm-category" style="display: none;">
           <div class="category-header" onclick="toggleCategory('dm-category')">
-            <span class="category-title"><span class="chevron">&blacktriangledown;</span> [DM] DIRECT ENCRYPTED</span>
+            <span class="category-title"><span class="chevron">&blacktriangledown;</span> [DM] DIRECT MESSAGES</span>
           </div>
           <div class="category-channels" id="dm-channels-list">
             <!-- Dynamic DMs injected via JS -->
@@ -255,11 +114,7 @@
             <button class="add-channel-btn" id="btn-add-voice-channel" onclick="event.stopPropagation(); openModal('modal-create-channel')" title="Create Voice Channel">+</button>
           </div>
           <div class="category-channels" id="voice-channels-list">
-            <div class="channel-item" onclick="selectChannel('voice-lounge', 'Decentralized Voice Lounge &amp; Acoustic Key Exchange')">
-              <span class="hash-icon">[VOX]</span>
-              <span class="channel-name">Voice Lounge</span>
-              <span class="channel-badge" style="background:rgba(0, 245, 155, 0.15); color:#00f59b; font-size:0.65rem;">RTC</span>
-            </div>
+            <!-- Dynamic Voice Channels -->
           </div>
         </div>
       </div>
@@ -304,7 +159,7 @@
         <!-- Chat Topbar -->
         <header class="chat-topbar">
           <div class="topbar-left">
-            <button class="mobile-nav-toggle" id="btn-toggle-sidebar" onclick="toggleMobileSidebar()" title="Toggle Navigation">&equiv;</button>
+            <button class="mobile-nav-toggle" id="btn-toggle-sidebar" onclick="toggleMobileSidebar()" title="Open Channels Sidebar"><span class="mobile-nav-icon">&equiv;</span><span class="mobile-nav-text">CHANNELS</span></button>
             <span class="channel-hash-icon" id="topbar-channel-icon">#</span>
             <div class="topbar-channel-info">
               <h3 class="topbar-channel-title" id="topbar-channel-title">general</h3>
@@ -629,7 +484,7 @@
     </aside>
 
     <!-- Mobile Drawer Backdrop -->
-    <div class="drawer-backdrop" id="drawer-backdrop"></div>
+    <div class="drawer-backdrop" id="drawer-backdrop" onclick="toggleMobileSidebar(false)"></div>
   </div>
 
   <!-- MODALS CONTAINER -->
@@ -1115,8 +970,6 @@
       </div>
     </div>
   </div>
-        <button onclick="connectInjectedNow()" class="btn-pill btn-pill-green">Connect</button>
-      </div>
 
       <div id="wallet-options-list" style="display:flex; flex-direction:column; gap:8px;">
         <button onclick="connectMetaMaskDirect()" class="wallet-btn-card">
@@ -1179,8 +1032,8 @@
   </div>
 
   <!-- Main Application JavaScript -->
-  <script src="app.js?v=1789230000"></script>
-  <script src="wyrenet_runtime.js?v=1789230000"></script>
+  <script src="app.js?v=1789256000"></script>
+  <script src="wyrenet_runtime.js?v=1789256000"></script>
 
   <!-- WebRTC Bilateral Voice & Video Call Overlay Modal -->
   <div id="webrtc-call-modal" class="call-overlay-modal" style="display:none;">

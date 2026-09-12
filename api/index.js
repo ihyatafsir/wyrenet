@@ -31,6 +31,18 @@ const accountBalances = new Map([
 ]);
 let currentBlockHeight = 642;
 
+const GossipMesh = require('../src/mesh/GossipMesh');
+const { seedAllLibraries, resolveChannelAlias } = require('../src/mesh/LibrarySeeder');
+
+let serverlessMesh = null;
+function getServerlessMesh() {
+  if (!serverlessMesh) {
+    serverlessMesh = new GossipMesh({ nodeId: 'serverless@wyrenet' });
+    seedAllLibraries(serverlessMesh, 'space-public-mesh');
+  }
+  return serverlessMesh;
+}
+
 function parseBody(req) {
   return new Promise((resolve) => {
     if (req.body && typeof req.body === 'object') {
@@ -94,6 +106,19 @@ module.exports = async function handler(req, res) {
 
   const url = new URL(req.url, `http://${req.headers['host'] || 'localhost'}`);
   const pathname = url.pathname;
+
+  // 0. Channel History (Sovereign EPUBs & Classical Manuscripts)
+  if (pathname.startsWith('/api/history/') && req.method === 'GET') {
+    const rawId = pathname.replace('/api/history/', '').split('?')[0];
+    const canonicalId = resolveChannelAlias(rawId);
+    const mesh = getServerlessMesh();
+    let history = mesh.getChannelHistory(canonicalId);
+    if ((!history || history.length === 0) && canonicalId !== rawId) {
+      history = mesh.getChannelHistory(rawId);
+    }
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify(history || []));
+  }
 
   // 1. Info / Status
   if (pathname === '/api/info' || pathname === '/api/wyrenet/status') {

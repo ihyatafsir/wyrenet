@@ -767,9 +767,11 @@
     const topbarLabel = document.getElementById("topbar-wallet-label");
     if (topbarLabel) {
       if (addr) {
-        topbarLabel.textContent = addr.substring(0, 6) + "..." + addr.substring(38) + " | " + currentWalletBalance + " WYRE";
+        const shortAddr = addr.substring(0, 6) + "..." + addr.substring(38);
+        const shortBal = parseFloat(currentWalletBalance || 0).toFixed(1) + " WYRE";
+        topbarLabel.innerHTML = '<span class="wallet-full-text">' + shortAddr + ' | ' + currentWalletBalance + ' WYRE</span><span class="wallet-mobile-text">' + shortBal + '</span>';
       } else {
-        topbarLabel.textContent = "CONNECT WALLET";
+        topbarLabel.innerHTML = '<span class="wallet-full-text">CONNECT WALLET</span><span class="wallet-mobile-text">WALLET</span>';
       }
     }
 
@@ -1114,6 +1116,20 @@
       const isIhya = b.category && b.category.includes("Ihya");
       const ihyaId = isIhya ? (b.index || 1) : 0;
 
+      let targetChannel = "chan-classical-heritage";
+      if (b.imam_key === "razi" || (b.author && b.author.includes("Razi"))) {
+        targetChannel = (b.title && (b.title.includes("Matalib") || b.title.includes("Tafsir"))) ? "chan-razi-tafsir-matalib" : "chan-razi-kalam-usul";
+      } else if (b.imam_key === "ghazali" || (b.author && b.author.includes("Ghazali"))) {
+        if (isIhya) targetChannel = "chan-ghazali-ihya";
+        else if (b.title && (b.title.includes("Tahafut") || b.title.includes("Iqtisad") || b.title.includes("Maqasid"))) targetChannel = "chan-ghazali-kalam-falsafa";
+        else if (b.title && (b.title.includes("Mustasfa") || b.title.includes("Miyar") || b.title.includes("Mihakk"))) targetChannel = "chan-ghazali-usul-mantiq";
+        else targetChannel = "chan-ghazali-suluk-adab";
+      } else if (b.imam_key === "nawawi" || (b.author && b.author.includes("Nawawi"))) {
+        targetChannel = "chan-nawawi-hadith-fiqh";
+      } else if (b.imam_key === "raghib" || (b.author && b.author.includes("Raghib"))) {
+        targetChannel = (b.title && b.title.includes("Mufradat")) ? "chan-raghib-lexicon-tafsir" : "chan-raghib-akhlaq-adab";
+      }
+
       return (
         "<div class='book-card-v4v5'>" +
           "<div style='display:flex; justify-content:space-between; align-items:flex-start; gap:8px;'>" +
@@ -1126,14 +1142,14 @@
             "<span style='font-size:0.68rem; color:var(--text-muted); font-family:var(--font-mono);'>" + (b.sizeMb || "1.2 MB") + " &middot; SHA-256 Verified</span>" +
             "<span style='font-size:0.68rem; color:var(--matrix-green); font-family:var(--font-mono);'>L1 ANCHORED</span>" +
           "</div>" +
-          "<div style='display:flex; gap:6px; margin-top:8px;'>" +
-            "<a href='/epubs/" + b.filename + "' download class='btn-pill btn-pill-green' style='flex:1; justify-content:center; text-decoration:none; font-size:0.72rem; padding:6px;'>Download EPUB</a>" +
-            (isIhya ? "<button class='btn-pill' style='background:rgba(255,255,255,0.06); color:#fff; font-size:0.72rem; padding:6px;' onclick='openBookReader(" + ihyaId + ", \"" + b.title.replace(/'/g, "") + "\", \"" + (b.arabic_title || "").replace(/'/g, "") + "\", \"" + b.filename + "\")'>Read</button>" : "") +
-            "<button class='btn-pill' style='background:rgba(255,255,255,0.04); color:var(--text-muted); font-size:0.7rem; padding:6px;' onclick='verifyEpubL1Anchor(\"" + b.filename + "\", \"" + b.sha256 + "\")' title='Verify On-Chain Receipt'>L1 Proof</button>" +
+          "<div style='display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;'>" +
+            "<a href='/epubs/" + b.filename + "' download class='btn-pill btn-pill-green' style='flex:1; justify-content:center; text-decoration:none; font-size:0.72rem; padding:6px;'>Download</a>" +
+            (isIhya ? "<button class='btn-pill' style='background:rgba(255,255,255,0.06); color:#fff; font-size:0.72rem; padding:6px;' onclick='openBookReader(" + ihyaId + ", "" + b.title.replace(/'/g, "") + "", "" + (b.arabic_title || "").replace(/'/g, "") + "", "" + b.filename + "")'>Read</button>" : "") +
+            "<button class='btn-pill' style='background:rgba(0, 245, 155, 0.1); color:var(--matrix-green); border:1px solid rgba(0, 245, 155, 0.25); font-size:0.7rem; padding:6px;' onclick='closeMaktabaModal(); selectChannel("" + targetChannel + "")' title='Open in Imam Channel'>Channel</button>" +
+            "<button class='btn-pill' style='background:rgba(255,255,255,0.04); color:var(--text-muted); font-size:0.7rem; padding:6px;' onclick='verifyEpubL1Anchor("" + b.filename + "", "" + b.sha256 + "")' title='Verify On-Chain Receipt'>L1 Proof</button>" +
           "</div>" +
         "</div>"
-      );
-    }).join("");
+      );).join("");
   }
 
   window.verifyEpubL1Anchor = async function(filename, sha256) {
@@ -1158,5 +1174,81 @@
       setTimeout(function() { toast.classList.remove("show"); }, 3500);
     }
   }
+
+
+  // --- Mobile Channels Sidebar & Drawer Navigation ---
+  let _lastSidebarToggle = 0;
+  window.toggleMobileSidebar = function(force) {
+    const now = Date.now();
+    if (typeof force !== 'boolean' && (now - _lastSidebarToggle < 250)) {
+      return; // Debounce rapid double trigger
+    }
+    _lastSidebarToggle = now;
+
+    const sidebar = document.getElementById('channels-sidebar');
+    const rail = document.getElementById('space-rail');
+    const backdrop = document.getElementById('drawer-backdrop');
+    const app = document.getElementById('app-container');
+    const members = document.getElementById('members-sidebar');
+
+    if (members) members.classList.remove('show-mobile');
+    if (!sidebar) return;
+
+    const currentlyOpen = sidebar.classList.contains('show-mobile') || sidebar.classList.contains('mobile-open');
+    const willOpen = typeof force === 'boolean' ? force : !currentlyOpen;
+
+    if (willOpen) {
+      sidebar.classList.add('show-mobile', 'mobile-open');
+      if (rail) rail.classList.add('show-mobile');
+      if (backdrop) backdrop.classList.add('active');
+      if (app) app.classList.add('drawer-open');
+    } else {
+      sidebar.classList.remove('show-mobile', 'mobile-open');
+      if (rail) rail.classList.remove('show-mobile');
+      if (backdrop) backdrop.classList.remove('active');
+      if (app) app.classList.remove('drawer-open');
+    }
+  };
+
+  window.toggleChannelsDrawer = window.toggleMobileSidebar;
+  window.closeDrawers = function() {
+    window.toggleMobileSidebar(false);
+  };
+
+  // Wire up touch gestures on mobile for smooth drawer swipe
+  let touchStartX = 0;
+  let touchStartY = 0;
+  document.addEventListener('touchstart', function(e) {
+    if (e.touches && e.touches[0]) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    if (!e.changedTouches || !e.changedTouches[0]) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+    if (deltaY > 60) return;
+
+    if (touchStartX < 45 && deltaX > 50) {
+      window.toggleMobileSidebar(true);
+    }
+    if (deltaX < -60) {
+      const sidebar = document.getElementById('channels-sidebar');
+      if (sidebar && (sidebar.classList.contains('show-mobile') || sidebar.classList.contains('mobile-open'))) {
+        window.toggleMobileSidebar(false);
+      }
+    }
+  }, { passive: true });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const backdrop = document.getElementById('drawer-backdrop');
+    if (backdrop) {
+      backdrop.addEventListener('click', function() {
+        window.toggleMobileSidebar(false);
+      });
+    }
+  });
 
 })();

@@ -43,6 +43,19 @@ const seenTxHashes = new Set();
 const MAX_PEERS = 256;
 const MAX_BODY_BYTES = 256 * 1024; // 256 KB payload cap
 
+// Mesh and Classical Library Infrastructure
+const GossipMesh = require('./src/mesh/GossipMesh');
+const MajlisManager = require('./src/mesh/MajlisManager');
+const HudurPresence = require('./src/mesh/HudurPresence');
+const { seedAllLibraries, resolveChannelAlias } = require('./src/mesh/LibrarySeeder');
+
+const gossipMesh = new GossipMesh({ nodeId: 'sovereign-node@wyrenet' });
+const majlisManager = new MajlisManager();
+const presenceManager = new HudurPresence();
+
+// Seed all corresponding Imam channels with 246+ authenticated classical EPUBs
+seedAllLibraries(gossipMesh, 'space-public-mesh');
+
 // Helper for MIME types
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -131,6 +144,19 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
+
+  // Endpoint: Channel History (Sovereign EPUBs & Classical Manuscripts)
+  if (pathname.startsWith('/api/history/') && req.method === 'GET') {
+    const rawId = pathname.replace('/api/history/', '').split('?')[0];
+    const canonicalId = resolveChannelAlias(rawId);
+    let history = gossipMesh.getChannelHistory(canonicalId);
+    if ((!history || history.length === 0) && canonicalId !== rawId) {
+      history = gossipMesh.getChannelHistory(rawId);
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(history || []));
+    return;
+  }
 
   // Endpoint: Health & Telemetry
   if (pathname === '/api/info' || pathname === '/api/wyrenet/status') {
@@ -740,6 +766,28 @@ wss.on('connection', (ws, req) => {
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
+      if (data.type === 'IDENTIFY') {
+        const peerRecord = {
+          peerId,
+          prefix: (data.payload && data.payload.prefix) || 'peer',
+          shortHash: (data.payload && data.payload.shortHash) || peerId.substring(0, 8),
+          spaceId: (data.payload && data.payload.spaceId) || 'space-public-mesh',
+          channelId: (data.payload && data.payload.channelId) || 'chan-general',
+          lastSeen: Date.now()
+        };
+        presenceManager.recordHeartbeat(peerRecord);
+        ws.send(JSON.stringify({
+          type: 'IDENTIFIED',
+          payload: {
+            identity: peerRecord,
+            spaces: majlisManager.getAllSpaces(),
+            peers: presenceManager.getAllPeers()
+          }
+        }));
+      } else if (data.type === 'SEND_MESSAGE') {
+        const payload = data.payload || {};
+        gossipMesh.receivePacket(payload, peerId);
+      }
       for (const [id, client] of connectedPeers.entries()) {
         if (id !== peerId && client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({ ...data, from: peerId }));
