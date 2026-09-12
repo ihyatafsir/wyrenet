@@ -391,8 +391,20 @@ export class WyreWalletEngine {
     };
 
     const digest = relayer.getTypedDataDigest(forwardRequest, network.chainId, network.forwarderAddress);
-    const sig = secp256k1.sign(digest, this.privateKey, { format: 'recovered', prehash: false });
-    const signatureHex = '0x' + Array.from(sig).map(b => b.toString(16).padStart(2, '0')).join('');
+    const rawSig = secp256k1.sign(digest, this.privateKey);
+    let recoveredBytes: Uint8Array = new Uint8Array(65);
+    for (let recovery of [0, 1]) {
+      const sigWithRec = secp256k1.Signature.fromBytes(rawSig).addRecoveryBit(recovery);
+      const testBytes = sigWithRec.toBytes('recovered');
+      try {
+        const recPub = secp256k1.recoverPublicKey(testBytes, digest, { isCompressed: false });
+        if (secp256k1.etc.bytesToHex(recPub) === this.publicKeyHex) {
+          recoveredBytes = testBytes;
+          break;
+        }
+      } catch {}
+    }
+    const signatureHex = '0x' + secp256k1.etc.bytesToHex(recoveredBytes);
 
     const metaPayload: GaslessMetaTxPayload = {
       request: forwardRequest,
@@ -428,8 +440,20 @@ export class WyreWalletEngine {
     const prefix = `\x19Ethereum Signed Message:\n${challengeText.length}${challengeText}`;
     const msgHash = keccak_256(new TextEncoder().encode(prefix));
 
-    const sig = secp256k1.sign(msgHash, this.privateKey, { format: 'recovered', prehash: false });
-    return '0x' + Array.from(sig).map(b => b.toString(16).padStart(2, '0')).join('');
+    const rawSig = secp256k1.sign(msgHash, this.privateKey);
+    let recoveredBytes: Uint8Array = new Uint8Array(65);
+    for (let recovery of [0, 1]) {
+      const sigWithRec = secp256k1.Signature.fromBytes(rawSig).addRecoveryBit(recovery);
+      const testBytes = sigWithRec.toBytes('recovered');
+      try {
+        const recPub = secp256k1.recoverPublicKey(testBytes, msgHash, { isCompressed: false });
+        if (secp256k1.etc.bytesToHex(recPub) === this.publicKeyHex) {
+          recoveredBytes = testBytes;
+          break;
+        }
+      } catch {}
+    }
+    return '0x' + secp256k1.etc.bytesToHex(recoveredBytes);
   }
 
   public verifyAddressOwnership(
@@ -446,9 +470,9 @@ export class WyreWalletEngine {
         return { verified: false, error: 'Invalid signature length' };
       }
 
-      const sigBytes = new Uint8Array(cleanSig.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
-      const recPub = secp256k1.recoverPublicKey(sigBytes, msgHash, { prehash: false, isCompressed: false });
-      const recAddr = '0x' + Array.from(keccak_256(recPub.slice(1)).slice(-20)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const sigBytes = secp256k1.etc.hexToBytes(cleanSig);
+      const recPub = secp256k1.recoverPublicKey(sigBytes, msgHash, { isCompressed: false });
+      const recAddr = '0x' + secp256k1.etc.bytesToHex(keccak_256(recPub.slice(1)).slice(-20));
 
       const verified = recAddr.toLowerCase() === address.toLowerCase();
       return { verified, recoveredAddress: recAddr };

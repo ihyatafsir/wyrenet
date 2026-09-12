@@ -15,6 +15,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import RootErrorBoundary from './src/ui/RootErrorBoundary';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import WalletScreen from './src/screens/WalletScreen';
 import ContactsScreen from './src/screens/ContactsScreen';
@@ -164,47 +165,47 @@ export default function App() {
     }
   };
 
-  if (hasIdentity === null) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Initializing WyreNet...</Text>
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#050B07" />
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName={hasIdentity ? 'Main' : 'Welcome'}
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#050B07' },
-          }}
-        >
-          <Stack.Screen name="Welcome">
-            {props => (
-              <WelcomeScreen
-                {...props}
-                onComplete={() => setHasIdentity(true)}
-              />
-            )}
-          </Stack.Screen>
-          <Stack.Screen name="Main" component={MainTabs} />
-          <Stack.Screen
-            name="Chat"
-            component={ChatScreen}
-            options={{
-              headerShown: true,
-              headerStyle: { backgroundColor: '#050B07' },
-              headerTintColor: '#00FF66',
-              headerTitleStyle: { fontWeight: 'bold' },
+    <RootErrorBoundary>
+      {hasIdentity === null ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Initializing WyreNet...</Text>
+        </View>
+      ) : (
+        <SafeAreaProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#050B07" />
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName={hasIdentity ? 'Main' : 'Welcome'}
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#050B07' },
             }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
+          >
+            <Stack.Screen name="Welcome">
+              {props => (
+                <WelcomeScreen
+                  {...props}
+                  onComplete={() => setHasIdentity(true)}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen
+              name="Chat"
+              component={ChatScreen}
+              options={{
+                headerShown: true,
+                headerStyle: { backgroundColor: '#050B07' },
+                headerTintColor: '#00FF66',
+                headerTitleStyle: { fontWeight: 'bold' },
+              }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>
+      )}
+    </RootErrorBoundary>
   );
 }
 

@@ -37,7 +37,7 @@ const sessions: Map<string, WireGuardSession> = new Map();
  * Generate WireGuard-compatible keypair
  */
 export async function generateKeyPair(): Promise<WireGuardKeyPair> {
-    const privateKey = ed.utils.randomPrivateKey();
+    const privateKey = ed.utils.randomSecretKey();
     const publicKey = await ed.getPublicKeyAsync(privateKey);
 
     return {

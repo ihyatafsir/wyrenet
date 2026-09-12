@@ -15,6 +15,11 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.wyrenet.mesh"
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
     defaultConfig {
         applicationId "com.wyrenet.mesh"
         minSdkVersion rootProject.ext.minSdkVersion

@@ -219,9 +219,9 @@ export class WyreGaslessRelayer {
 
       // 3. Compute digest and recover public key
       const digest = this.getTypedDataDigest(payload.request, payload.chainId, payload.forwarderAddress);
-      const recoveredPubKey = secp256k1.recoverPublicKey(sigBytes, digest, { prehash: false, isCompressed: false });
+      const recoveredPubKey = secp256k1.recoverPublicKey(sigBytes, digest, { isCompressed: false });
       const addressBytes = keccak_256(recoveredPubKey.slice(1)).slice(-20);
-      const recoveredAddress = '0x' + Array.from(addressBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      const recoveredAddress = '0x' + secp256k1.etc.bytesToHex(addressBytes);
 
       // 4. Signer matching
       if (recoveredAddress.toLowerCase() !== payload.request.from.toLowerCase()) {

@@ -119,7 +119,7 @@ class WyreSUpP2PManager extends EventEmitter {
 
         // Generate a placeholder public key if not provided
         // In real usage, this would come from a key exchange
-        const pubKey = peerPublicKey || ed.utils.randomPrivateKey();
+        const pubKey = peerPublicKey || ed.utils.randomSecretKey();
 
         const peer: PeerConnection = {
             id,

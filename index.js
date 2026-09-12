@@ -50,9 +50,34 @@ if (typeof global.crypto === 'undefined') {
   global.crypto = {};
 }
 
-// 3. Register Main Application Component
+if (!global.crypto.getRandomValues) {
+  global.crypto.getRandomValues = function (typedArray) {
+    for (let i = 0; i < typedArray.length; i++) {
+      typedArray[i] = Math.floor(Math.random() * 256);
+    }
+    return typedArray;
+  };
+}
+
+// 3. Global Error Protection
+if (global.ErrorUtils && typeof global.ErrorUtils.setGlobalHandler === 'function') {
+  const defaultHandler = global.ErrorUtils.getGlobalHandler();
+  global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+    console.error('[WyreNet Global Error Shield]:', error, 'isFatal:', isFatal);
+    if (!isFatal && defaultHandler) {
+      defaultHandler(error, isFatal);
+    }
+  });
+}
+
+// 4. Register Main Application Component with Multi-Key Aliases
 import { AppRegistry } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
 
 AppRegistry.registerComponent(appName, () => App);
+AppRegistry.registerComponent('WyreNet', () => App);
+AppRegistry.registerComponent('WyreSup', () => App);
+AppRegistry.registerComponent('com.wyrenet.mesh', () => App);
+AppRegistry.registerComponent('com.wyresup.app', () => App);
+AppRegistry.registerComponent('main', () => App);
