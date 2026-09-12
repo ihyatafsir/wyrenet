@@ -24,7 +24,7 @@ export interface AIMessageResponse {
 
 export class WyreAIEngine {
   private static instance: WyreAIEngine;
-  private apiKey: string = 'sk-33ffc7c1ef144ff88a1e70693ac3e990';
+  private apiKey: string = process.env.DEEPSEEK_API_KEY || '';
   private baseUrl: string = 'https://api.deepseek.com';
   private model: string = 'deepseek-chat'; // DeepSeek Flash / Chat API
 

@@ -24,7 +24,7 @@ secp.hashes.hmacSha256 = (key, ...msgs) => hmac(sha256, key, secp.etc.concatByte
 
 const HTTP_PORT = process.env.PORT || 5190;
 const WS_PORT = process.env.WS_PORT || 9000;
-const DEEPSEEK_KEY = process.env.DEEPSEEK_API_KEY || 'sk-33ffc7c1ef144ff88a1e70693ac3e990';
+const DEEPSEEK_KEY = process.env.DEEPSEEK_API_KEY || '';
 
 // In-memory Peer & Transaction State
 const connectedPeers = new Map();

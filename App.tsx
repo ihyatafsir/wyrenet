@@ -28,6 +28,7 @@ import P2PConnectionScreen from './src/screens/P2PConnectionScreen';
 import TunnelScreen from './src/screens/TunnelScreen';
 import NaghamScreen from './src/screens/NaghamScreen';
 import MaladhScreen from './src/screens/MaladhScreen';
+import LibraryScreen from './src/screens/LibraryScreen';
 import { deserializeIdentity, WyreSUpIdentity } from './src/utils/Identity';
 
 const Stack = createNativeStackNavigator();
@@ -42,6 +43,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     Voice: '[VOX]',
     Stealth: '[STL]',
     Nearby: '[NRB]',
+    Library: '[LIB]',
     Contacts: '[USR]',
     Requests: '[REQ]',
     Feed: '[FED]',
@@ -134,6 +136,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Wallet" component={WalletScreen} options={{ title: 'Wallet (خَزِينَة)' }} />
+      <Tab.Screen name="Library" component={LibraryScreen} options={{ title: 'Maktaba (مَكْتَبَة)' }} />
       <Tab.Screen name="P2P" component={P2PConnectionScreen} options={{ title: 'WyreNet Mesh' }} />
       <Tab.Screen name="Tunnel" component={TunnelScreen} options={{ title: 'Nafaq Tunnel' }} />
       <Tab.Screen name="Voice" component={NaghamScreen} options={{ title: 'Nagham DTMF' }} />
