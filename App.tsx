@@ -82,7 +82,7 @@ function SettingsScreen() {
         <Text style={styles.identityValue}>2HmQcbYmNdjDPsA53R4hThwr2Ec4UTz1pe5MvATFSkgGr1CDtU</Text>
         
         <Text style={styles.identityLabel}>Chain ID</Text>
-        <Text style={styles.identityValue}>51950 (ZBAT Token)</Text>
+        <Text style={styles.identityValue}>51950 (WYRE Token)</Text>
 
         <Text style={styles.identityLabel}>Avalanche Fuji Testnet</Text>
         <Text style={styles.identityValue}>43113 (AVAX Token)</Text>

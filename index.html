@@ -2,993 +2,934 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WyreNet — وايرنِت Sovereign Mesh & Web3 Ecosystem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WyreNet">
+  <meta name="theme-color" content="#00f59b">
+  <title>WyreNet // Sovereign Mesh Messenger & Avalanche L1 Subnet 51950</title>
+  <meta name="description" content="Ultra-secure, sovereign decentralized P2P cryptographic mesh messenger featuring zero-RTT ChaCha20 encryption, Sawt audio, Nafaq VPN tunneling, and Avalanche Subnet 51950 Web3 wallet.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #070a13;
-      --card-bg: rgba(16, 24, 40, 0.88);
-      --card-border: rgba(0, 255, 136, 0.18);
-      --accent: #00ff88;
-      --accent-glow: rgba(0, 255, 136, 0.35);
-      --accent-hover: #00cc6e;
-      --accent-dim: rgba(0, 255, 136, 0.12);
-      --text: #f0fdf4;
-      --text-muted: #8492a6;
-      --bubble-self: #0d3824;
-      --bubble-peer: #131c2e;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --info: #3b82f6;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-    body {
-      background-color: var(--bg);
-      background-image: radial-gradient(circle at 50% 0%, rgba(0, 255, 136, 0.08) 0%, transparent 60%);
-      color: var(--text);
-      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      background: rgba(10, 16, 28, 0.94);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--card-border);
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .brand h1 {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--accent);
-      letter-spacing: -0.5px;
-    }
-
-    .brand span {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      background: rgba(255, 255, 255, 0.05);
-      padding: 2px 6px;
-      border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .status-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-    }
-    .dot.offline { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
-
-    .tab-bar {
-      display: flex;
-      background: rgba(13, 20, 36, 0.95);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      padding: 4px 8px;
-      gap: 4px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .tab-bar::-webkit-scrollbar { display: none; }
-
-    .tab-btn {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 10px 8px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      white-space: nowrap;
-      transition: all 0.2s;
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .tab-btn:hover { color: var(--text); }
-    .tab-btn.active {
-      color: var(--accent);
-      background: rgba(0, 255, 136, 0.1);
-      box-shadow: inset 0 0 0 1px var(--card-border);
-    }
-
-    main {
-      flex: 1;
-      padding: 14px;
-      max-width: 780px;
-      width: 100%;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .tab-content { display: none; flex-direction: column; flex: 1; gap: 12px; }
-    .tab-content.active { display: flex; animation: fadeIn 0.2s ease-out; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-
-    .card-title {
-      font-size: 0.9rem;
-      font-weight: 800;
-      color: var(--accent);
-      letter-spacing: 0.5px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .peers-strip {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 6px;
-    }
-
-    .peer-chip {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .peer-chip.selected {
-      background: var(--accent);
-      color: #050811;
-      font-weight: 700;
-      box-shadow: 0 0 12px var(--accent-glow);
-    }
-
-    .chat-box {
-      flex: 1;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 14px;
-      overflow-y: auto;
-      min-height: 360px;
-      max-height: 480px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .msg-bubble {
-      max-width: 85%;
-      padding: 10px 14px;
-      border-radius: 14px;
-      font-size: 0.9rem;
-      line-height: 1.4;
-      display: flex;
-      flex-direction: column;
-      word-break: break-word;
-      white-space: pre-wrap;
-    }
-    .msg-bubble.self {
-      align-self: flex-end;
-      background: var(--bubble-self);
-      border-bottom-right-radius: 4px;
-      border: 1px solid rgba(0, 255, 136, 0.2);
-    }
-    .msg-bubble.peer {
-      align-self: flex-start;
-      background: var(--bubble-peer);
-      border-bottom-left-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .msg-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-      gap: 8px;
-    }
-    .msg-author { font-weight: 700; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
-    .msg-bubble.self .msg-author { color: #86efac; }
-
-    .chat-input-bar {
-      display: flex;
-      gap: 8px;
-      margin-top: auto;
-    }
-
-    input, textarea, select {
-      background: rgba(13, 20, 36, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      color: #fff;
-      padding: 12px 14px;
-      font-size: 0.88rem;
-      font-family: inherit;
-      outline: none;
-      transition: border 0.2s;
-      width: 100%;
-    }
-    input:focus, textarea:focus, select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 10px var(--accent-glow);
-    }
-    .chat-input-bar input { flex: 1; }
-
-    button.btn-action {
-      background: var(--accent);
-      color: #050811;
-      border: none;
-      border-radius: 12px;
-      padding: 0 18px;
-      font-weight: 700;
-      font-size: 0.88rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-      font-family: 'JetBrains Mono', monospace;
-      white-space: nowrap;
-    }
-    button.btn-action:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px var(--accent-glow);
-    }
-    .btn-outline {
-      background: transparent;
-      color: var(--accent);
-      border: 1px solid var(--accent);
-    }
-    .btn-outline:hover {
-      background: var(--accent-dim);
-      color: #FFF;
-    }
-    .btn-sm { padding: 6px 12px; font-size: 0.75rem; border-radius: 8px; }
-
-    .brand-badge {
-      font-size: 0.65rem;
-      background: var(--accent-dim);
-      color: var(--accent);
-      border: 1px solid var(--card-border);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 700;
-    }
-
-    .wallet-hero {
-      background: linear-gradient(135deg, rgba(13, 56, 36, 0.8) 0%, rgba(6, 14, 10, 0.95) 100%);
-      border: 1px solid var(--accent);
-      box-shadow: 0 0 20px rgba(0, 255, 136, 0.15);
-      border-radius: 14px;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .wallet-balance-num {
-      font-size: 2.3rem;
-      font-weight: 800;
-      font-family: 'JetBrains Mono', monospace;
-      color: #FFF;
-    }
-
-    .wallet-address-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px dashed var(--card-border);
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      margin-top: 12px;
-      color: var(--text);
-      cursor: pointer;
-    }
-    .wallet-address-chip:hover { border-color: var(--accent); background: rgba(0, 255, 136, 0.1); }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    @media (max-width: 650px) {
-      .grid-2 { grid-template-columns: 1fr; }
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.82);
-      backdrop-filter: blur(6px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-      padding: 16px;
-    }
-    .modal-backdrop.open { display: flex; }
-
-    .modal-card {
-      background: #08120C;
-      border: 1px solid var(--accent);
-      border-radius: 14px;
-      padding: 20px;
-      max-width: 520px;
-      width: 100%;
-      max-height: 85vh;
-      overflow-y: auto;
-      box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
-    }
-
-    .word-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin: 14px 0;
-    }
-    .word-cell {
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid var(--card-border);
-      padding: 8px;
-      border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      text-align: center;
-    }
-
-    .book-item-card {
-      background: rgba(13, 20, 36, 0.9);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .book-item-card:hover {
-      border-color: var(--accent);
-      background: rgba(0, 255, 136, 0.05);
-    }
-
-    .test-log-box {
-      background: #000;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 12px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.74rem;
-      line-height: 1.5;
-      height: 220px;
-      overflow-y: auto;
-      color: #A7F3D0;
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=1789230000">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 </head>
 <body>
+  <div id="app-container" class="app-layout">
+    
+    <!-- 1. LEFT RAIL: SPACES / MAJALIS -->
+    <nav class="space-rail" id="space-rail" aria-label="Spaces Navigation">
+      <div class="rail-header">
+        <button class="rail-icon brand-icon active" title="WyreNet Root Mesh" id="btn-root-mesh" onclick="switchMainView('chat')">
+          <span class="icon-text" style="font-weight:900; color:var(--matrix-green);">WN</span>
+          <div class="active-pill"></div>
+        </button>
+      </div>
+      <div class="rail-divider"></div>
 
-  <!-- HEADER (WyreSup Identical Aesthetics) -->
-  <header>
-    <div class="brand">
-      <h1>وايرنِت</h1>
-      <span>WyreNet P2P • Subnet 51950</span>
-    </div>
-    <div class="status-badge">
-      <div class="dot" id="netDot"></div>
-      <span id="netStatusText">Sovereign Mesh Active</span>
-    </div>
-  </header>
+      <!-- Main Navigation Views -->
+      <div class="spaces-list" id="spaces-list">
+        <button class="rail-icon" title="Chat Stream" onclick="switchMainView('chat')" id="rail-btn-chat">
+          <span class="icon-text" style="font-size:11px; font-weight:800;">CHAT</span>
+        </button>
+        <button class="rail-icon wyrenet-l1-active" title="Avalanche Subnet 51950 Blockchain Vault" onclick="switchMainView('blockchain')" id="rail-btn-blockchain">
+          <span class="icon-text" style="font-size:11px; font-weight:800; color:#fc8181;">L1</span>
+        </button>
+        <button class="rail-icon" title="Classical Maktaba Library (40 Books of Ihya & Tafsir)" onclick="switchMainView('maktaba')" id="rail-btn-maktaba">
+          <span class="icon-text" style="font-size:11px; font-weight:800; color:var(--matrix-gold);">LIB</span>
+        </button>
+        <button class="rail-icon" title="Sovereign Notary & Proof Mint" onclick="switchMainView('notary')" id="rail-btn-notary">
+          <span class="icon-text" style="font-size:11px; font-weight:800; color:var(--matrix-cyan);">SEAL</span>
+        </button>
+      </div>
 
-  <!-- TAB NAVIGATION -->
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('chat')">[P2P] CHAT</button>
-    <button class="tab-btn" onclick="switchTab('groups')">[GRP] GROUPS</button>
-    <button class="tab-btn" onclick="switchTab('nashr')">[FED] FEED</button>
-    <button class="tab-btn" onclick="switchTab('maktaba')">[LIB] MAKTABA & EPUB</button>
-    <button class="tab-btn" onclick="switchTab('wallet')">[VAULT] BLOCKCHAIN L1</button>
+      <!-- Add / Join Space & Tools -->
+      <div class="rail-actions">
+        <button class="rail-icon add-btn" id="btn-open-create-space" title="Create or Join Space (Majlis Jadid)">
+          <span>+</span>
+        </button>
+        <button class="rail-icon spawn-bot-btn" id="btn-spawn-bot" title="Spawn Simulated Mesh Bot (Al-Kindi, Ibn-Sina...)">
+          <span style="font-size:10px; font-weight:800;">BOT</span>
+        </button>
+        <button class="rail-icon diag-btn" id="btn-open-diagnostics" title="Mesh Network Diagnostics (Al-Mu'ashshir)">
+          <span style="font-size:10px; font-weight:800;">DIAG</span>
+        </button>
+        <button class="rail-icon" id="btn-rail-wallet" onclick="openUniswapModal()" title="Web3 Subnet 51950 Wallet">
+          <span style="font-size:10px; font-weight:800; color:var(--matrix-green);">WLT</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- 2. CHANNELS SIDEBAR: GHURAF -->
+    <aside class="channels-sidebar" id="channels-sidebar">
+      <!-- Space Header -->
+      <div class="space-header" id="space-header">
+        <div class="space-title-wrap">
+          <button class="mobile-close-sidebar-btn" id="btn-close-sidebar" onclick="toggleMobileSidebar()" title="Back to Chat">&larr;</button>
+          <div>
+            <h2 class="space-title" id="current-space-name" style="display:flex; align-items:center; gap:6px;">
+              <span>WYRENET</span>
+              <span class="l1-did-badge" style="font-size:0.6rem; padding:1px 5px;">51950</span>
+            </h2>
+            <span class="space-sub" id="current-space-arabic">مَجْلِس وَايِرْنِت السِّيَادِيّ</span>
+          </div>
+        </div>
+        <button class="space-menu-btn" id="btn-space-menu" onclick="openUniswapModal()" title="Space Options">&equiv;</button>
+      </div>
+
+      <!-- Channels List Categories -->
+      <div class="channels-scroller" id="channels-scroller">
+        
+        <!-- Text Channels Category -->
+        <div class="channel-category" id="cat-text-channels">
+          <div class="category-header" onclick="toggleCategory('cat-text-channels')">
+            <span class="category-title"><span class="chevron">&blacktriangledown;</span> [TEXT] CHANNELS</span>
+            <button class="add-channel-btn" id="btn-add-text-channel" onclick="event.stopPropagation(); openModal('modal-create-channel')" title="Create Text Channel">+</button>
+          </div>
+          <div class="category-channels" id="text-channels-list">
+            <div class="channel-item active" onclick="selectChannel('general', 'General mesh broadcasts and consensus pings')">
+              <span class="hash-icon">#</span>
+              <span class="channel-name">general</span>
+              <span class="channel-badge" style="background:rgba(0, 245, 155, 0.15); color:#00f59b; font-size:0.65rem;">L1</span>
+            </div>
+            <div class="channel-item" onclick="selectChannel('announcements', 'Protocol upgrades, hard forks and release milestones')">
+              <span class="hash-icon">#</span>
+              <span class="channel-name">announcements</span>
+              <span class="channel-badge" style="background:rgba(229, 62, 62, 0.15); color:#fc8181; font-size:0.65rem;">CORE</span>
+            </div>
+            <div class="channel-item" onclick="selectChannel('dev-mesh', 'Peer routing, double-ratchet cipher and ZBAT telemetry')">
+              <span class="hash-icon">#</span>
+              <span class="channel-name">dev-mesh</span>
+            </div>
+            <div class="channel-item" onclick="selectChannel('p2p-ops', 'ZBAT, Miftah and Nafaq route performance')">
+              <span class="hash-icon">#</span>
+              <span class="channel-name">p2p-ops</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scholar & Classical Heritage Channels -->
+        <div class="channel-category" id="cat-scholar-channels">
+          <div class="category-header" onclick="toggleCategory('cat-scholar-channels')">
+            <span class="category-title"><span class="chevron">&blacktriangledown;</span> [SCHOLAR] HERITAGE CHANNELS</span>
+          </div>
+          <div class="category-channels" id="scholar-channels-list">
+            <div class="channel-item" onclick="selectChannel('ihya-ulum-al-din', 'Imam Al-Ghazali - 40 Books of Ihya Ulum al-Din Study Circle')">
+              <span class="hash-icon">[G]</span>
+              <span class="channel-name">ihya-ulum-al-din</span>
+              <span class="channel-badge" style="background:rgba(246, 173, 85, 0.15); color:#f6ad55; font-size:0.65rem;">40 BKS</span>
+            </div>
+            <div class="channel-item" onclick="selectChannel('imam-al-razi-tafsir', 'Imam Fakhr al-Din al-Razi - Tafsir al-Kabir 30 Volumes')">
+              <span class="hash-icon">[R]</span>
+              <span class="channel-name">imam-al-razi-tafsir</span>
+              <span class="channel-badge" style="background:rgba(96, 165, 250, 0.15); color:#60a5fa; font-size:0.65rem;">30 VOL</span>
+            </div>
+            <div class="channel-item" onclick="selectChannel('asrar-rashid', 'Shaykh Asrar Rashid - Aqeedah, Fiqh and Kalam Lessons')">
+              <span class="hash-icon">[A]</span>
+              <span class="channel-name">asrar-rashid</span>
+            </div>
+            <div class="channel-item" onclick="selectChannel('ahmad-lessons', 'Shaykh Ahmad - Spiritual Dars and Hikmah')">
+              <span class="hash-icon">[S]</span>
+              <span class="channel-name">ahmad-lessons</span>
+            </div>
+            <div class="channel-item" onclick="selectChannel('hamza-yusuf', 'Shaykh Hamza Yusuf - Purification of the Heart and Logic')">
+              <span class="hash-icon">[H]</span>
+              <span class="channel-name">hamza-yusuf</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direct DMs Category -->
+        <div class="channel-category" id="dm-category">
+          <div class="category-header" onclick="toggleCategory('dm-category')">
+            <span class="category-title"><span class="chevron">&blacktriangledown;</span> [DM] DIRECT ENCRYPTED</span>
+          </div>
+          <div class="category-channels" id="dm-channels-list">
+            <!-- Dynamic DMs injected via JS -->
+          </div>
+        </div>
+
+        <!-- Voice & Sawt Category -->
+        <div class="channel-category" id="cat-voice-channels">
+          <div class="category-header" onclick="toggleCategory('cat-voice-channels')">
+            <span class="category-title"><span class="chevron">&blacktriangledown;</span> [VOX] VOICE &amp; SAWT</span>
+            <button class="add-channel-btn" id="btn-add-voice-channel" onclick="event.stopPropagation(); openModal('modal-create-channel')" title="Create Voice Channel">+</button>
+          </div>
+          <div class="category-channels" id="voice-channels-list">
+            <div class="channel-item" onclick="selectChannel('voice-lounge', 'Decentralized Voice Lounge &amp; Acoustic Key Exchange')">
+              <span class="hash-icon">[VOX]</span>
+              <span class="channel-name">Voice Lounge</span>
+              <span class="channel-badge" style="background:rgba(0, 245, 155, 0.15); color:#00f59b; font-size:0.65rem;">RTC</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice Connected Bar -->
+      <div class="voice-connected-bar" id="voice-connected-bar" style="display: none;">
+        <div class="voice-conn-left">
+          <span class="voice-conn-icon">[VOX]</span>
+          <div class="voice-conn-info">
+            <span class="voice-conn-status">RTC CONNECTED</span>
+            <span class="voice-conn-channel" id="voice-conn-channel-name">Voice Lounge</span>
+          </div>
+        </div>
+        <button class="voice-disconnect-btn" id="btn-voice-disconnect" title="Disconnect Voice">&times;</button>
+      </div>
+
+      <!-- User Control / Identity Bar -->
+      <div class="user-bar">
+        <div class="user-avatar-wrap" onclick="openUniswapModal()" style="cursor:pointer;">
+          <div class="user-avatar" id="current-user-avatar">?</div>
+          <span class="status-indicator hadir" id="current-user-status"></span>
+        </div>
+        <div class="user-info" onclick="openUniswapModal()" style="cursor:pointer;">
+          <div class="user-name" id="current-user-name">Loading...</div>
+          <div class="user-id" id="current-user-id">peer@00000000</div>
+        </div>
+        <div class="user-actions">
+          <button class="icon-action-btn" id="btn-toggle-mic" title="Toggle Mic / Sawt"><span style="font-size:10px; font-weight:800;">MIC</span></button>
+          <button class="icon-action-btn" id="btn-lisan-modal" title="Lisan al-Arab Lexicon &amp; Protocol Engine"><span style="font-size:10px; font-weight:800;">LIS</span></button>
+          <button class="icon-action-btn" id="btn-nagham-modal" title="Nagham DTMF Keypad"><span style="font-size:10px; font-weight:800;">DTMF</span></button>
+          <button class="icon-action-btn" id="btn-user-settings" title="Identity Settings"><span style="font-size:10px; font-weight:800;">CFG</span></button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 3. MAIN WORKSPACE CANVAS -->
+    <main class="chat-main" id="chat-main">
+      
+      <!-- VIEW 1: LIVE CHAT STREAM -->
+      <div class="app-view-panel active" id="view-chat">
+        
+        <!-- Chat Topbar -->
+        <header class="chat-topbar">
+          <div class="topbar-left">
+            <button class="mobile-nav-toggle" id="btn-toggle-sidebar" onclick="toggleMobileSidebar()" title="Toggle Navigation">&equiv;</button>
+            <span class="channel-hash-icon" id="topbar-channel-icon">#</span>
+            <div class="topbar-channel-info">
+              <h3 class="topbar-channel-title" id="topbar-channel-title">general</h3>
+              <span class="channel-type-pill" id="topbar-channel-type">TEXT</span>
+            </div>
+            <div class="topbar-divider"></div>
+            <p class="topbar-channel-topic" id="topbar-channel-topic">General mesh broadcasts and consensus pings.</p>
+          </div>
+          <div class="topbar-right">
+            <!-- Voice & Video Call Action Buttons -->
+            <button class="topbar-btn topbar-call-btn" id="btn-topbar-call-voice" title="Start Audio Call" style="display: none;"><span style="font-size:10px; font-weight:800;">CALL</span></button>
+            <button class="topbar-btn topbar-call-btn" id="btn-topbar-call-video" title="Start Video Call" style="display: none;"><span style="font-size:10px; font-weight:800;">VID</span></button>
+            <!-- Live Network Indicator Badge -->
+            <div class="mesh-badge" id="topbar-mesh-badge" title="P2P Connection Status">
+              <span class="pulse-dot"></span>
+              <span class="badge-text" id="topbar-mesh-status">P2P MESH // MUTTASIL</span>
+            </div>
+            <button class="topbar-btn" id="btn-toggle-members" title="Toggle Member List"><span style="font-size:10px; font-weight:800;">PEERS</span></button>
+          </div>
+        </header>
+
+        <!-- Voice Lounge Hub Banner -->
+        <div class="voice-lounge-banner" id="voice-lounge-banner" style="display: none;">
+          <div class="voice-lounge-header">
+            <div class="voice-lounge-title-wrap">
+              <span class="voice-lounge-icon" style="font-size:14px; font-weight:800; color:var(--matrix-green);">[VOX]</span>
+              <div>
+                <h4 class="voice-lounge-title" id="voice-lounge-name">Voice Lounge (Sawt wa Nagham)</h4>
+                <p class="voice-lounge-sub">Decentralized P2P Acoustic &amp; Voice Exchange</p>
+              </div>
+            </div>
+            <div class="voice-lounge-actions">
+              <button class="btn btn-voice-action" id="btn-voice-ptt">
+                <span id="voice-ptt-text">Push to Record Sawt</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-lounge-dtmf">Send DTMF Acoustic Key</button>
+            </div>
+          </div>
+          <div class="voice-participants-bar" id="voice-participants-bar"></div>
+        </div>
+
+        <!-- Nafaq Encrypted Tunnel Banner -->
+        <div class="nafaq-tunnel-banner" id="nafaq-tunnel-banner" style="display: none;">
+          <div class="tunnel-banner-main">
+            <div class="tunnel-row-top">
+              <div class="tunnel-brand">
+                <span class="tunnel-title">NAFAQ P2P</span>
+                <span class="tunnel-badge">نَفَق مُبَاشِر</span>
+                <span class="tunnel-ip" id="tunnel-assigned-ip">10.240.0.2/24</span>
+              </div>
+              <div class="tunnel-top-actions">
+                <button class="btn-tunnel-inspect" id="btn-open-tunnel-details" title="Tunnel Dashboard">Dashboard</button>
+                <button class="btn-tunnel-close" id="btn-close-tunnel" title="Tear Down Tunnel">&times;</button>
+              </div>
+            </div>
+            <div class="tunnel-row-bottom">
+              <span class="tunnel-sub" id="tunnel-peer-info">Direct ChaCha20-Poly1305 link &middot; 9ms</span>
+              <div class="tunnel-live-traffic">
+                <span class="traffic-tag tx">&Delta; <span id="tunnel-tx-count">1.4 MB</span></span>
+                <span class="traffic-tag rx">&nabla; <span id="tunnel-rx-count">3.8 MB</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages History View -->
+        <div class="messages-container" id="messages-container">
+          <!-- Channel Welcome Hero -->
+          <div class="channel-welcome-hero" id="channel-welcome-hero">
+            <div class="hero-icon" id="hero-icon">#</div>
+            <h1 class="hero-title" id="hero-channel-title">Welcome to #general!</h1>
+            <p class="hero-desc" id="hero-channel-desc">This is the start of the #general channel in the WyreNet Decentralized Gossip Mesh.</p>
+          </div>
+
+          <!-- Messages Stream -->
+          <div class="messages-stream" id="messages-stream">
+            <!-- Messages injected dynamically via JS -->
+          </div>
+        </div>
+
+        <!-- Live Voice Recording Floating Bar -->
+        <div class="sawt-recording-bar" id="sawt-recording-bar" style="display: none;">
+          <div class="rec-indicator">
+            <span class="rec-dot"></span>
+            <span class="rec-label">RECORDING SAWT (تَسْجِيل صَوْت)</span>
+            <span class="rec-timer" id="rec-timer">00:00</span>
+          </div>
+          <div class="rec-visualizer">
+            <div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div>
+            <div class="rec-bar"></div><div class="rec-bar"></div><div class="rec-bar"></div>
+            <div class="rec-bar"></div><div class="rec-bar"></div>
+          </div>
+          <div class="rec-actions">
+            <button class="rec-cancel-btn" id="btn-cancel-recording" title="Cancel">&times; Cancel</button>
+            <button class="rec-send-btn" id="btn-finish-recording" title="Send Sawt Audio">Send Voice Note &rarr;</button>
+          </div>
+        </div>
+
+        <!-- Floating Jump to Present Pill -->
+        <button class="jump-to-bottom-btn" id="btn-jump-bottom" style="display: none;" title="Jump to Present">
+          <span>&darr; Jump to Present (الِانْتِقَال لِلأَسْفَل)</span>
+        </button>
+
+        <!-- Typing Indicator -->
+        <div class="typing-bar" id="typing-bar">
+          <div class="typing-dots" id="typing-dots" style="display:none;">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="typing-text" id="typing-text"></span>
+        </div>
+
+        <!-- Message Composer Area -->
+        <footer class="composer-footer">
+          <div class="attachment-staging-tray" id="attachment-staging-tray" style="display: none;"></div>
+
+          <div class="composer-box">
+            <input type="file" id="file-attachment-input" style="display: none;" multiple>
+            
+            <button class="composer-btn attach-file-btn" id="btn-attach-file" title="Upload File / P2P Transfer">
+              <span>+</span>
+            </button>
+
+            <button class="composer-btn voice-record-btn" id="btn-record-sawt" title="Record Sawt Voice Note">
+              <span style="font-size:10px; font-weight:800;">VOX</span>
+            </button>
+            
+            <textarea 
+              id="message-input" 
+              class="message-textarea" 
+              placeholder="Broadcast encrypted message to #general..." 
+              rows="1"
+            ></textarea>
+
+            <div class="composer-actions">
+              <button class="composer-btn dtmf-quick-btn" id="btn-quick-dtmf" title="Send DTMF Acoustic Tones (نَغَم)">
+                <span style="font-size:10px; font-weight:800;">DTMF</span>
+              </button>
+              <button class="composer-btn send-btn" id="btn-send-message" title="Send">
+                <span>&rarr;</span>
+              </button>
+            </div>
+          </div>
+        </footer>
+      </div>
+
+      <!-- VIEW 2: BLOCKCHAIN SUBNET 51950 VAULT WINDOW -->
+      <div class="app-view-panel" id="view-blockchain">
+        <div class="view-scroll-canvas">
+          
+          <!-- Subnet 51950 Hero Card -->
+          <div class="l1-card">
+            <div class="l1-card-header">
+              <div class="l1-card-title">
+                <span>WyreNet Sovereign L1 Subnet 51950</span>
+                <span class="l1-did-badge verified">CHAIN ID: 51950 (0xCAEE)</span>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn-pill btn-pill-green" onclick="requestFaucetTokens()">Claim 100 WYRE Faucet</button>
+                <button class="btn-pill" style="background:rgba(255,255,255,0.08); color:#fff;" onclick="openUniswapModal()">Connect Web3</button>
+              </div>
+            </div>
+            
+            <!-- Live Telemetry Grid -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; font-family:var(--font-mono); font-size:0.82rem;">
+              <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+                <div style="color:var(--text-muted); font-size:0.72rem;">NATIVE TOKEN</div>
+                <div style="color:#fff; font-weight:800; font-size:0.95rem; margin-top:4px;">WYRE (18 Decimals)</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+                <div style="color:var(--text-muted); font-size:0.72rem;">BLOCK TIME &amp; CONSENSUS</div>
+                <div style="color:var(--matrix-green); font-weight:800; font-size:0.95rem; margin-top:4px;">1.0s (Snowman++)</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+                <div style="color:var(--text-muted); font-size:0.72rem;">ACTIVE VALIDATORS</div>
+                <div style="color:var(--l1-blue); font-weight:800; font-size:0.95rem; margin-top:4px;" id="val-subnet-nodes">53 Sovereign Nodes</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+                <div style="color:var(--text-muted); font-size:0.72rem;">YOUR WYRE BALANCE</div>
+                <div style="color:var(--l1-gold); font-weight:800; font-size:0.95rem; margin-top:4px;" id="user-wyre-balance">0.0000 WYRE</div>
+              </div>
+            </div>
+
+            <!-- RPC Configuration -->
+            <div style="background:#141926; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="color:#fff; font-size:0.9rem;">EVM JSON-RPC 2.0 Endpoint</strong>
+                <button class="btn-pill btn-pill-green" onclick="copyRpcEndpoint()" style="padding:4px 10px; font-size:0.72rem;">Copy RPC URL</button>
+              </div>
+              <code style="font-family:var(--font-mono); font-size:0.78rem; color:var(--matrix-green); word-break:break-all;" id="val-rpc-url">
+                http://127.0.0.1:5190/api/wyrenet/rpc
+              </code>
+            </div>
+          </div>
+
+          <!-- BIP-39 On-Demand Wallet Generator Card -->
+          <div class="l1-card">
+            <div class="l1-card-header">
+              <div class="l1-card-title">
+                <span>BIP-39 Sovereign Wallet Generator</span>
+                <span class="l1-did-badge verified">12-WORD MNEMONIC</span>
+              </div>
+              <button class="btn-pill btn-pill-green" onclick="generateNewMnemonicWallet()">Generate New 12-Word Wallet</button>
+            </div>
+            
+            <div id="mnemonic-display-box" style="display:none; background:#080b11; border:1px solid var(--border-emerald); padding:16px; border-radius:12px; display:flex; flex-direction:column; gap:12px;">
+              <div style="color:var(--matrix-green); font-size:0.85rem; font-weight:700;">Write down your secret 12-word mnemonic phrase:</div>
+              <div id="mnemonic-words-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; font-family:var(--font-mono); font-size:0.82rem;"></div>
+              
+              <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+                <div style="color:var(--text-muted); font-size:0.78rem;">Derived Sovereign Address:</div>
+                <code id="derived-wallet-address" style="color:#fff; font-family:var(--font-mono); font-size:0.8rem; background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; word-break:break-all;"></code>
+              </div>
+
+              <div style="display:flex; gap:8px; margin-top:6px;">
+                <button class="btn-pill btn-pill-green" onclick="saveAndUseGeneratedWallet()">Use This Wallet</button>
+                <button class="btn-pill" style="background:rgba(255,255,255,0.08); color:#fff;" onclick="copyMnemonicPhrase()">Copy Phrase</button>
+              </div>
+            </div>
+
+            <!-- Import Existing Key Box -->
+            <div style="display:flex; gap:10px; margin-top:8px;">
+              <input type="text" id="import-private-key-input" class="message-textarea" placeholder="Paste 12-word mnemonic or 64-char private key (0x...)" style="flex:1; padding:10px 14px; border-radius:12px; height:auto;">
+              <button class="btn-pill" style="background:rgba(255,255,255,0.08); color:#fff;" onclick="importCustomKey()">Import Key</button>
+            </div>
+          </div>
+
+          <!-- DeepSeek Flash 4.1 Security Auditor Card -->
+          <div class="l1-card">
+            <div class="l1-card-header">
+              <div class="l1-card-title">
+                <span>DeepSeek Flash 4.1 Security Auditor</span>
+                <span class="l1-did-badge verified">AI SMART CONTRACT AUDIT</span>
+              </div>
+              <button class="btn-pill btn-pill-green" onclick="runAiSecurityAudit()">Run Security Audit</button>
+            </div>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin:0; line-height:1.5;">
+              Analyze smart contracts, bytecode, EIP-712 typed signatures, and transaction calldata using deep reasoning models.
+            </p>
+            <textarea id="ai-audit-input" class="message-textarea" placeholder="Paste Solidity contract or ABI payload for deep inspection..." rows="3" style="padding:10px 14px; border-radius:12px;"></textarea>
+            <div id="ai-audit-output" style="display:none; background:#080b11; border:1px solid var(--border-subtle); padding:14px; border-radius:12px; font-family:var(--font-mono); font-size:0.8rem; color:#e2e8f0; line-height:1.6; max-height:220px; overflow-y:auto;"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- VIEW 3: CLASSICAL MAKTABA & SCHOLAR CHANNELS WINDOW -->
+      <div class="app-view-panel" id="view-maktaba">
+        <div class="view-scroll-canvas">
+          
+          <div class="l1-card">
+            <div class="l1-card-header">
+              <div class="l1-card-title">
+                <span>Maktaba al-Turath al-Islami (Classical Islamic Corpus)</span>
+                <span class="l1-did-badge verified" id="library-volume-count-badge">246+ VOLUMES &middot; L1 SEALED</span>
+              </div>
+              <button class="btn-pill btn-pill-green" onclick="verifyLibraryManifest()">Verify SHA-256 Hashes</button>
+            </div>
+            
+            <p style="color:var(--text-muted); font-size:0.85rem; margin:0; line-height:1.5;">
+              Featuring all 40 books of Imam Abu Hamid al-Ghazali's <em>Ihya Ulum al-Din</em> with authentic Arabic and English translations, Imam Fakhr al-Din al-Razi's 30-volume <em>Tafsir al-Kabir</em>, Imam al-Nawawi, and contemporary scholars.
+            </p>
+
+            <!-- Quarter & Author Filter Pills -->
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+              <button class="btn-pill btn-pill-green active" id="filter-pill-all" onclick="filterMaktabaCategory('ALL')">All Volumes (الكل)</button>
+              <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="filterMaktabaCategory('Q1')">Ihya Q1: Worship (العبادات)</button>
+              <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="filterMaktabaCategory('Q2')">Ihya Q2: Customs (العادات)</button>
+              <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="filterMaktabaCategory('Q3')">Ihya Q3: Vices (المهلكات)</button>
+              <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="filterMaktabaCategory('Q4')">Ihya Q4: Virtues (المنجيات)</button>
+              <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="filterMaktabaCategory('Razi')">Tafsir al-Kabir (30 Vols)</button>
+              <button class="btn-pill" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="filterMaktabaCategory('Scholars')">Contemporary Scholars</button>
+            </div>
+
+            <!-- Search Bar -->
+            <input type="text" id="maktaba-search-input" class="message-textarea" placeholder="Search manuscripts by title, author, or Arabic root (علم, صلاة, صبر, توكل)..." oninput="handleMaktabaSearch(this.value)" style="padding:10px 14px; border-radius:12px; height:auto; margin-top:8px;">
+
+            <!-- Dynamic Books Grid -->
+            <div class="epub-grid" id="maktaba-grid-container" style="margin-top:12px;">
+              <!-- Dynamically populated via JS -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- VIEW 4: SOVEREIGN NOTARY WINDOW -->
+      <div class="app-view-panel" id="view-notary">
+        <div class="view-scroll-canvas">
+          <div class="l1-card">
+            <div class="l1-card-header">
+              <div class="l1-card-title">
+                <span>Sovereign Notary &amp; Proof Mint</span>
+                <span class="l1-did-badge verified">EIP-712 NOTARY</span>
+              </div>
+            </div>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin:0; line-height:1.5;">
+              Permanently anchor digital manuscripts, chat messages, and documents onto the WyreNet Sovereign L1 ledger with gasless paymaster sponsorship.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+              <textarea id="notary-content-input" class="message-textarea" placeholder="Paste full manuscript text or pre-computed 64-character SHA-256 hash..." rows="3" style="padding:10px 14px; border-radius:12px;"></textarea>
+              <button class="btn-pill btn-pill-red" onclick="executeCustomNotarization()" style="padding:12px 20px; font-size:0.9rem; justify-content:center;">
+                <span>Stamp &amp; Seal on WyreNet L1</span>
+              </button>
+            </div>
+            <div id="receipt-notary" style="display:none; padding:14px; border-radius:12px; background:rgba(0, 245, 155, 0.08); border:1px solid var(--border-emerald); font-family:var(--font-mono); font-size:0.8rem; line-height:1.6; margin-top:12px;"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 4. RIGHT SIDEBAR: MEMBERS / HUDUR -->
+    <aside class="members-sidebar" id="members-sidebar">
+      <div class="members-header-mobile">
+        <span class="members-header-title">MEMBERS (الأَعْضَاء)</span>
+        <button class="btn-close-members" id="btn-close-members" title="Close Members">&times;</button>
+      </div>
+
+      <div class="members-category">
+        <h4 class="members-cat-title" id="online-count-header">ONLINE (حَاضِر) &mdash; 0</h4>
+        <div class="members-list" id="online-members-list">
+          <!-- Dynamic Members injected via JS -->
+        </div>
+      </div>
+
+      <div class="members-category">
+        <h4 class="members-cat-title" id="offline-count-header">OFFLINE (غَائِب) &mdash; 0</h4>
+        <div class="members-list" id="offline-members-list">
+          <!-- Dynamic Offline Members injected via JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Drawer Backdrop -->
+    <div class="drawer-backdrop" id="drawer-backdrop"></div>
   </div>
 
-  <main>
-    <!-- TAB 1: P2P CHAT -->
-    <section id="tab-chat" class="tab-content active">
-      <div class="peers-strip" id="peersStrip">
-        <div class="peer-chip selected" onclick="selectPeer('broadcast')">PUBLIC MESH (ALL)</div>
-        <div class="peer-chip" onclick="selectPeer('khalid')">Khalid [Node_02]</div>
-        <div class="peer-chip" onclick="selectPeer('asrar_channel')">Shaykh Asrar [Bot]</div>
-      </div>
+  <!-- MODALS CONTAINER -->
 
-      <div class="chat-box" id="chatBox">
-        <div class="msg-bubble peer">
-          <div class="msg-header">
-            <span class="msg-author">WyreNet Bot (رَفِيق الشَّبَكَة)</span>
-            <span>Now</span>
+  <!-- 1. Diagnostics Modal (Al-Mu'ashshir) -->
+  <div class="modal-overlay" id="modal-diagnostics">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>WyreNet Mesh Diagnostics (المُؤَشِّر)</h3>
+        <button class="modal-close" data-close="modal-diagnostics">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="diag-grid">
+          <div class="diag-card">
+            <span class="diag-label">LOCAL IDENTITY</span>
+            <span class="diag-val" id="diag-local-id">peer@...</span>
           </div>
-          <div>Salam alaykum! Welcome to WyreNet Sovereign Mesh. Operating with zero domain dependencies on Avalanche Subnet 51950. E2E encrypted via Miftah 0-RTT ratchet.</div>
-        </div>
-      </div>
-
-      <div class="chat-input-bar">
-        <input type="text" id="chatInput" placeholder="Type encrypted message or /tip 5 to send tokens..." onkeypress="if(event.key==='Enter') sendChatMessage()">
-        <button class="btn-action" onclick="sendChatMessage()">Send</button>
-      </div>
-    </section>
-
-    <!-- TAB 2: GROUPS (جَمَاعَة) -->
-    <section id="tab-groups" class="tab-content">
-      <div class="card">
-        <div class="card-title">Mesh Gossip Group (جَمَاعَة المَجْلِس)</div>
-        <div style="display: flex; gap: 8px;">
-          <input type="text" id="newGroupName" placeholder="Group Name (e.g. Al-Majlis Al-Ilmi)" style="flex:1;">
-          <button class="btn-action btn-sm" onclick="createMeshGroup()">Create</button>
-        </div>
-      </div>
-
-      <div class="chat-box" id="groupChatBox" style="min-height: 280px;">
-        <div class="msg-bubble peer">
-          <div class="msg-header">
-            <span class="msg-author">Majlis System</span>
-            <span>Pinned</span>
+          <div class="diag-card">
+            <span class="diag-label">TRANSPORT PROTOCOL</span>
+            <span class="diag-val emerald">ZBAT / Miftah / Barq</span>
           </div>
-          <div>Welcome to the Sovereign Mesh Gossip Group. Messages replicate across all reachable peers via ZBAT routing.</div>
-        </div>
-      </div>
-
-      <div class="chat-input-bar">
-        <input type="text" id="groupMsgInput" placeholder="Send message to active mesh group..." onkeypress="if(event.key==='Enter') sendMeshGroupMessage()">
-        <button class="btn-action" onclick="sendMeshGroupMessage()">Send</button>
-      </div>
-    </section>
-
-    <!-- TAB 3: NASHR FEED (نَشْر) -->
-    <section id="tab-nashr" class="tab-content">
-      <div class="card">
-        <div class="card-title">Publish Signed Bulletin (نَشْرَة لَامَرْكَزِيَّة)</div>
-        <textarea id="postContent" rows="2" placeholder="Publish signed bulletin to mesh timeline..."></textarea>
-        <button class="btn-action btn-sm" style="margin-top: 8px;" onclick="publishNashrPost()">Publish to Mesh</button>
-      </div>
-
-      <div class="card-title" style="margin-top: 6px;">Follower-Replicated Sovereign Timeline</div>
-      <div id="feedList" style="display: flex; flex-direction: column; gap: 8px;">
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-family:monospace; margin-bottom:4px;">
-            <span style="color:var(--accent); font-weight:700;">did:wyre:0x8bd160f61ba74c2792f3...</span>
-            <span style="color:var(--text-muted);">Block #648 • Subnet 51950</span>
+          <div class="diag-card">
+            <span class="diag-label">MESSAGES PUBLISHED</span>
+            <span class="diag-val" id="diag-msgs-published">0</span>
           </div>
-          <div style="font-size:0.9rem;">WyreNet Sovereign Mesh and Avalanche L1 Blockchain are synchronized with zero-domain sovereign relay.</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 4: MAKTABA & IMAM CHANNELS (مَكْتَبَة وقَنَوَات) -->
-    <section id="tab-maktaba" class="tab-content">
-      <div style="display: flex; gap: 8px; margin-bottom: 6px;">
-        <button id="btn-subtab-books" class="btn-action btn-sm" style="flex:1;" onclick="switchLibrarySubtab('books')">[40 BOOKS OF IHYA]</button>
-        <button id="btn-subtab-channels" class="btn-action btn-sm btn-outline" style="flex:1;" onclick="switchLibrarySubtab('channels')">[IMAM CHANNELS]</button>
-      </div>
-
-      <!-- Quarter Filter -->
-      <div id="quarter-filter-row" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;">
-        <button class="peer-chip selected" onclick="filterBooks('All')">ALL</button>
-        <button class="peer-chip" onclick="filterBooks('Worship')">WORSHIP (عِبَادَات)</button>
-        <button class="peer-chip" onclick="filterBooks('Daily Life')">DAILY LIFE (عَادَات)</button>
-        <button class="peer-chip" onclick="filterBooks('Vices')">VICES (مَهْلِكَات)</button>
-        <button class="peer-chip" onclick="filterBooks('Virtues')">VIRTUES (مُنْجِيَات)</button>
-      </div>
-
-      <!-- Books List Container -->
-      <div id="books-list-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto;">
-        <!-- Dynamic Book Items Inserted Here -->
-      </div>
-
-      <!-- Channels List Container -->
-      <div id="channels-list-container" style="display: none; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto;">
-        <!-- Dynamic Channel Items Inserted Here -->
-      </div>
-    </section>
-
-    <!-- TAB 5: BLOCKCHAIN VAULT (خَزِينَة) -->
-    <section id="tab-wallet" class="tab-content">
-      <div class="wallet-hero">
-        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: 1px;">
-          SOVEREIGN L1 CRYPTO VAULT
-        </div>
-        <div style="margin: 8px 0;">
-          <span id="wallet-balance" class="wallet-balance-num">100.0000</span>
-          <span id="wallet-symbol" style="color:var(--accent); font-weight:700; font-size:1.1rem; margin-left:4px;">ZBAT</span>
-        </div>
-        <div>
-          <div id="wallet-address" class="wallet-address-chip" onclick="copyAddress()" title="Click to copy">
-            0x8bd160f61ba74c2792f3befb7abca8852f110a25
+          <div class="diag-card">
+            <span class="diag-label">MESSAGES RECEIVED</span>
+            <span class="diag-val" id="diag-msgs-received">0</span>
+          </div>
+          <div class="diag-card">
+            <span class="diag-label">DUPLICATES DROPPED</span>
+            <span class="diag-val" id="diag-dups-dropped">0</span>
+          </div>
+          <div class="diag-card">
+            <span class="diag-label">AVERAGE HOPS</span>
+            <span class="diag-val" id="diag-avg-hops">0.0</span>
           </div>
         </div>
-        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 12px;">
-          <button class="btn-action btn-sm" onclick="generateNewAddress()">[GENERATE ADDRESS]</button>
-          <button class="btn-action btn-sm btn-outline" onclick="openMnemonicModal()">[12-WORD PHRASE]</button>
-          <button class="btn-action btn-sm btn-outline" onclick="openExportModal()">[EXPORT KEY]</button>
-          <button class="btn-action btn-sm btn-outline" onclick="openImportModal()">[IMPORT VAULT]</button>
-          <button class="btn-action btn-sm" style="background:#10B981;" onclick="requestFaucetFunds()">[+100 FAUCET ZBAT]</button>
+        <div class="diag-section">
+          <h4>CONNECTED MESH PEERS &amp; ROUTES</h4>
+          <div class="peers-table-wrap" id="diag-peers-table"></div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Gasless Transfer & Network -->
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">EIP-712 GASLESS TRANSFER</div>
-          <input type="text" id="send-to" placeholder="Recipient Address (0x...)">
-          <input type="number" id="send-amount" placeholder="Amount (e.g. 5.0)" value="5.0" style="margin-top: 8px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin: 8px 0; font-size:0.75rem;">
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-              <input type="checkbox" id="send-gasless" checked>
-              <span>Zero-Fee Gasless Sponsorship</span>
+  <!-- 2. Create Space Modal -->
+  <div class="modal-overlay" id="modal-create-space">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create New Mesh Space (مَجْلِس جَدِيد)</h3>
+        <button class="modal-close" data-close="modal-create-space">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="space-name-input">Space Name</label>
+          <input type="text" id="space-name-input" placeholder="e.g. Cyber Citadel, Dev Mesh...">
+        </div>
+        <div class="form-group">
+          <label for="space-arabic-input">Arabic Name (Optional)</label>
+          <input type="text" id="space-arabic-input" placeholder="e.g. مَجْلِس التَّطْوِير">
+        </div>
+        <div class="form-group">
+          <label for="space-desc-input">Description</label>
+          <textarea id="space-desc-input" rows="2" placeholder="Describe the purpose of this decentralized space..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-close="modal-create-space">Cancel</button>
+          <button class="btn btn-primary" id="btn-submit-create-space">Create Space</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Create Channel Modal -->
+  <div class="modal-overlay" id="modal-create-channel">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create New Channel (غُرْفَة جَدِيدَة)</h3>
+        <button class="modal-close" data-close="modal-create-channel">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="channel-name-input">Channel Name</label>
+          <input type="text" id="channel-name-input" placeholder="e.g. general, announcements...">
+        </div>
+        <div class="form-group">
+          <label>Channel Type</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="channel-type" value="text" checked>
+              <span>Text Channel</span>
             </label>
-            <span style="color:var(--accent); font-family:monospace;">Fee: 0.00 ZBAT</span>
+            <label class="radio-label">
+              <input type="radio" name="channel-type" value="voice">
+              <span>Voice &amp; Sawt Lounge</span>
+            </label>
           </div>
-          <button class="btn-action btn-sm" style="width:100%;" onclick="executeTransfer()">SIGN & RELAY GASLESS TRANSFER</button>
         </div>
-
-        <div class="card">
-          <div class="card-title">AVALANCHE SUBNET 51950</div>
-          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; display: flex; flex-direction: column; gap: 6px;">
-            <div style="display:flex; justify-content:space-between;">
-              <span style="color:var(--text-muted);">Chain ID:</span>
-              <span style="color:#FFF; font-weight:700;">51950 (ZBAT)</span>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-              <span style="color:var(--text-muted);">Subnet ID:</span>
-              <span style="color:#FFF; font-size:0.65rem;">2HmQcbYmNdj...Gr1CDtU</span>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-              <span style="color:var(--text-muted);">Zero-Domain Mode:</span>
-              <span style="color:var(--accent); font-weight:700;">ACTIVE</span>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-              <span style="color:var(--text-muted);">Relayer:</span>
-              <span style="color:var(--accent);">ONLINE (Port 5190)</span>
-            </div>
-          </div>
-          <button class="btn-action btn-sm btn-outline" style="width:100%; margin-top:8px;" onclick="runDiagnostics()">[RUN IN-BROWSER TEST SUITE]</button>
+        <div class="form-group">
+          <label for="channel-topic-input">Topic / Purpose</label>
+          <input type="text" id="channel-topic-input" placeholder="What is this channel about?">
         </div>
-      </div>
-
-      <!-- Test Diagnostic Output -->
-      <div id="diagnostics-card" class="card" style="display: none;">
-        <div class="card-title">IN-BROWSER CRYPTOGRAPHIC TEST LOGS</div>
-        <div id="test-console-box" class="test-log-box"></div>
-      </div>
-    </section>
-  </main>
-
-  <!-- MODAL: EPUB BOOK READER -->
-  <div id="modal-book-reader" class="modal-backdrop" onclick="if(event.target===this)closeModal('modal-book-reader')">
-    <div class="modal-card">
-      <div class="card-title">
-        <span id="modal-book-badge">BOOK #1</span>
-        <button class="btn-action btn-sm btn-outline" onclick="closeModal('modal-book-reader')">[CLOSE]</button>
-      </div>
-      <h2 id="modal-book-title-ar" style="color:var(--accent); font-size:1.3rem; text-align:right; margin:4px 0;">كِتَاب العِلْم</h2>
-      <h3 id="modal-book-title-en" style="color:#FFF; font-size:1rem; margin-bottom:8px;">The Book of Knowledge</h3>
-      <p id="modal-book-desc" style="color:var(--text-muted); font-size:0.8rem; margin-bottom:12px;"></p>
-
-      <div style="border-top:1px solid var(--card-border); padding-top:10px; margin-top:10px;">
-        <div style="color:var(--accent); font-size:0.75rem; font-weight:700; font-family:monospace; margin-bottom:6px;">ARABIC ORIGINAL (النَّصّ الأصِيل):</div>
-        <div id="modal-book-ar-text" style="background:#000; padding:12px; border-radius:8px; border:1px solid var(--card-border); font-size:0.95rem; line-height:1.7; text-align:right; color:#FFF; margin-bottom:12px;"></div>
-
-        <div style="color:var(--accent); font-size:0.75rem; font-weight:700; font-family:monospace; margin-bottom:6px;">ENGLISH TRANSLATION:</div>
-        <div id="modal-book-en-text" style="background:#000; padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); font-size:0.85rem; line-height:1.5; color:#E2E8F0;"></div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-close="modal-create-channel">Cancel</button>
+          <button class="btn btn-primary" id="btn-submit-create-channel">Create Channel</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: EXPORT PRIVATE KEY -->
-  <div id="modal-export" class="modal-backdrop" onclick="if(event.target===this)closeModal('modal-export')">
+  <!-- 4. Nagham DTMF Keypad Modal -->
+  <div class="modal-overlay" id="modal-nagham">
     <div class="modal-card">
-      <div class="card-title">
-        <span>EXPORT PRIVATE KEY</span>
-        <button class="btn-action btn-sm btn-outline" onclick="closeModal('modal-export')">[X]</button>
+      <div class="modal-header">
+        <h3>Nagham DTMF Acoustic Channel (نَغَم)</h3>
+        <button class="modal-close" data-close="modal-nagham">&times;</button>
       </div>
-      <p style="font-size:0.78rem; color:var(--danger); margin-bottom:10px; font-weight:700;">
-        WARNING: Never share your raw private key. Anyone with this key has full control of your assets.
-      </p>
-      <div id="export-key-val" style="background:#000; padding:12px; border-radius:8px; font-family:monospace; font-size:0.75rem; word-break:break-all; border:1px solid var(--danger); color:#FFF; margin-bottom:12px;"></div>
-      <button class="btn-action btn-sm" style="width:100%;" onclick="copyExportedKey()">COPY PRIVATE KEY</button>
-    </div>
-  </div>
+      <div class="modal-body">
+        <p class="nagham-desc">Play and transmit dual-frequency acoustic tones across voice channels for key exchange without data networks.</p>
+        <div class="dtmf-keypad" id="dtmf-keypad">
+          <button class="dtmf-key" data-key="1">1<span class="sub">697/1209</span></button>
+          <button class="dtmf-key" data-key="2">2<span class="sub">697/1336</span></button>
+          <button class="dtmf-key" data-key="3">3<span class="sub">697/1477</span></button>
+          <button class="dtmf-key special" data-key="A">A<span class="sub">697/1633</span></button>
 
-  <!-- MODAL: 12-WORD MNEMONIC -->
-  <div id="modal-mnemonic" class="modal-backdrop" onclick="if(event.target===this)closeModal('modal-mnemonic')">
-    <div class="modal-card">
-      <div class="card-title">
-        <span>12-WORD RECOVERY PHRASE</span>
-        <button class="btn-action btn-sm btn-outline" onclick="closeModal('modal-mnemonic')">[X]</button>
-      </div>
-      <p style="font-size:0.78rem; color:var(--text-muted);">
-        Write down these 12 words in exact order to recover your WyreNet vault anytime.
-      </p>
-      <div id="mnemonic-grid" class="word-grid"></div>
-      <button class="btn-action btn-sm" style="width:100%;" onclick="copyMnemonic()">COPY RECOVERY PHRASE</button>
-    </div>
-  </div>
+          <button class="dtmf-key" data-key="4">4<span class="sub">770/1209</span></button>
+          <button class="dtmf-key" data-key="5">5<span class="sub">770/1336</span></button>
+          <button class="dtmf-key" data-key="6">6<span class="sub">770/1477</span></button>
+          <button class="dtmf-key special" data-key="B">B<span class="sub">770/1633</span></button>
 
-  <!-- MODAL: IMPORT VAULT -->
-  <div id="modal-import" class="modal-backdrop" onclick="if(event.target===this)closeModal('modal-import')">
-    <div class="modal-card">
-      <div class="card-title">
-        <span>IMPORT SOVEREIGN VAULT</span>
-        <button class="btn-action btn-sm btn-outline" onclick="closeModal('modal-import')">[X]</button>
-      </div>
-      <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:8px;">
-        Enter your 12-word mnemonic phrase OR 64-character private key hex:
-      </p>
-      <textarea id="import-val" rows="3" placeholder="e.g. abandon ability able about above absent absorb abstract absurd abuse access accident&#10;OR 0x1234..."></textarea>
-      <button class="btn-action btn-sm" style="width:100%; margin-top:8px;" onclick="executeImport()">RESTORE VAULT</button>
-    </div>
-  </div>
+          <button class="dtmf-key" data-key="7">7<span class="sub">852/1209</span></button>
+          <button class="dtmf-key" data-key="8">8<span class="sub">852/1336</span></button>
+          <button class="dtmf-key" data-key="9">9<span class="sub">852/1477</span></button>
+          <button class="dtmf-key special" data-key="C">C<span class="sub">852/1633</span></button>
 
-  <script>
-    // 40 Books of Ihya Ulum al-Din Data
-    const BOOKS_DATA = [
-      { id: 1, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'The Book of Knowledge (Kitab al-Ilm)', titleAr: 'كِتَاب العِلْم', desc: 'Virtues of sacred knowledge and categories of sciences.', sampleAr: 'قَالَ اللَّهُ تَعَالَى: يَرْفَعِ اللَّهُ الَّذِينَ آمَنُوا مِنكُمْ وَالَّذِينَ أُوتُوا الْعِلْمَ دَرَجَاتٍ. وَقَالَ رَسُولُ اللَّهِ ﷺ: طَلَبُ الْعِلْمِ فَرِيضَةٌ عَلَى كُلِّ مُسْلِمٍ.', sampleEn: 'Allah says: "Allah will raise those who believe among you and those who were given knowledge, by degrees." The Prophet said: "Seeking knowledge is an obligation upon every Muslim."' },
-      { id: 2, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Foundations of Faith (Qawaid al-Aqaid)', titleAr: 'كِتَاب قَوَاعِد العَقَائِد', desc: 'Creed of Ahl al-Sunnah wa al-Jamaah.', sampleAr: 'فِي بَيَانِ عَقِيدَةِ أَهْلِ السُّنَّةِ: نَعْلَمُ وَنَجْزِمُ بِأَنَّ اللَّهَ تَعَالَى وَاحِدٌ لَا شَرِيكَ لَهُ، قَدِيمٌ لَا أَوَّلَ لَهُ.', sampleEn: 'On the Creed of Ahl al-Sunnah: We know and affirm with certainty that Allah the Exalted is One without partner, Eternal without beginning.' },
-      { id: 3, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Mysteries of Purity (Asrar al-Taharah)', titleAr: 'كِتَاب أَسْرَار الطَّهَارَة', desc: 'Four degrees of spiritual purification.', sampleAr: 'الطَّهَارَةُ لَهَا أَرْبَعُ مَرَاتِبَ: تَطْهِيرُ الظَّاهِرِ، تَطْهِيرُ الْجَوَارِحِ، تَطْهِيرُ الْقَلْبِ، وَتَطْهِيرُ السِّرِّ.', sampleEn: 'Purification has four degrees: Purifying the outward body, the physical limbs, the spiritual heart, and the inmost secret.' },
-      { id: 4, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Mysteries of Prayer (Asrar al-Salah)', titleAr: 'كِتَاب أَسْرَار الصَّلَاة', desc: 'Inner presence and humility in prayer.', sampleAr: 'رُوحُ الصَّلَاةِ وَحَيَاتُهَا هُوَ حُضُورُ الْقَلْبِ وَالْخُشُوعُ وَالتَّعْظِيمُ.', sampleEn: 'The soul and life of prayer is presence of the heart, humility, and reverence.' },
-      { id: 5, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Mysteries of Zakat (Asrar al-Zakat)', titleAr: 'كِتَاب أَسْرَار الزَّكَاة', desc: 'Purification of wealth and testing divine love.', sampleAr: 'فِي الزَّكَاةِ تَطْهِيرٌ لِلنَّفْسِ عَنْ رَذِيلَةِ الْبُخْلِ وَشُكْرٌ لِنِعْمَةِ الْمَالِ.', sampleEn: 'Zakat purifies the soul from stinginess and shows gratitude for divine blessings.' },
-      { id: 6, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Mysteries of Fasting (Asrar al-Sawm)', titleAr: 'كِتَاب أَسْرَار الصَّوْم', desc: 'The three degrees of fasting.', sampleAr: 'الصَّوْمُ ثَلَاثُ دَرَجَاتٍ: صَوْمُ الْعُمُومِ، وَصَوْمُ الْخُصُوصِ، وَصَوْمُ خُصُوصِ الْخُصُوصِ.', sampleEn: 'Fasting is of three degrees: The general public, the select, and the elite of the select.' },
-      { id: 7, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Mysteries of Pilgrimage (Asrar al-Hajj)', titleAr: 'كِتَاب أَسْرَار الحَجّ', desc: 'Inner symbolism of the sacred journey.', sampleAr: 'الْحَجُّ عِبَادَةُ الْعُمْرِ وَفِيهِ إِظْهَارُ الِانْقِيَادِ وَالْعُبُودِيَّةِ الْمُطْلَقَةِ لِلَّهِ.', sampleEn: 'Hajj is the worship of a lifetime embodying absolute submission to Allah.' },
-      { id: 8, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Etiquettes of Quran Recitation (Adab Tilawat al-Quran)', titleAr: 'كِتَاب آدَاب تِلَاوَة القُرْآن', desc: 'Manners of deep contemplation with the Quran.', sampleAr: 'مِنْ آدَابِ التِّلَاوَةِ الْفَهْمُ وَالتَّدَبُّرُ وَالتَّأَثُّرُ بِكُلِّ آيَةٍ.', sampleEn: 'Among the etiquettes of recitation is deep comprehension and contemplation.' },
-      { id: 9, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Invocations and Litanies (Al-Adhkar)', titleAr: 'كِتَاب الأَذْكَار والدَّعَوَات', desc: 'Remembrance of Allah and answered supplications.', sampleAr: 'الذِّكْرُ هُوَ مَنْشُورُ الْوِلَايَةِ وَسَبَبُ الْقُرْبِ مِنَ الْحَقِّ تَعَالَى.', sampleEn: 'Remembrance (dhikr) is the diploma of sainthood and closeness to the Divine.' },
-      { id: 10, quarter: 'Worship', quarterAr: 'رُبْع العِبَادَات', titleEn: 'Allocation of Daily Time (Tartib al-Awrad)', titleAr: 'كِتَاب تَرْتِيب الأَوْرَاد', desc: 'Structuring the day and night in perpetual obedience.', sampleAr: 'يَنْبَغِي لِلْعَبْدِ أَنْ يُرَتِّبَ أَوْرَادَهُ فَلَا يَتْرُكَ سَاعَةً فِي غَيْرِ طَاعَةٍ.', sampleEn: 'The servant should organize their daily litanies so not an hour passes without obedience.' },
-      { id: 21, quarter: 'Vices', quarterAr: 'رُبْع المَهْلِكَات', titleEn: 'The Wonders of the Heart (Ajaib al-Qalb)', titleAr: 'كِتَاب عَجَائِب القَلْب', desc: 'Anatomy of the spiritual heart.', sampleAr: 'الْقَلْبُ مَحَلُّ مَعْرِفَةِ اللَّهِ وَمِرْآةُ تَجَلِّي الْحَقَائِقِ.', sampleEn: 'The heart is the sanctuary for divine gnosis and the mirror of ultimate realities.' },
-      { id: 24, quarter: 'Vices', quarterAr: 'رُبْع المَهْلِكَات', titleEn: 'Vices of the Tongue (Afat al-Lisan)', titleAr: 'كِتَاب آفَات اللِّسَان', desc: 'Twenty spiritual dangers of speech.', sampleAr: 'اللِّسَانُ صَغِيرٌ جِرْمُهُ عَظِيمٌ جُرْمُهُ، وَمَنْ صَمَتَ نَجَا.', sampleEn: 'The tongue is small in its size but immense in its danger; whoever keeps silence is saved.' },
-      { id: 31, quarter: 'Virtues', quarterAr: 'رُبْع المُنْجِيَات', titleEn: 'Repentance (Kitab al-Tawbah)', titleAr: 'كِتَاب التَّوْبَة', desc: 'Nature of remorse, restitution, and turning back.', sampleAr: 'التَّوْبَةُ رُكْنُهَا الْأَعْظَمُ النَّدَمُ وَالْعَزْمُ عَلَى عَدَمِ الْعَوْدِ.', sampleEn: 'Repentance rests upon remorse and a resolute commitment never to return to the sin.' },
-      { id: 35, quarter: 'Virtues', quarterAr: 'رُبْع المُنْجِيَات', titleEn: 'Divine Unity and Reliance (Tawhid wa Tawakkul)', titleAr: 'كِتَاب التَّوْحِيد والتَّوَكُّل', desc: 'Pure monotheism and reliance upon the Almighty.', sampleAr: 'حَقِيقَةُ التَّوَكُّلِ سُكُونُ الْقَلْبِ إِلَى وَكِيلِهِ سُبْحَانَهُ.', sampleEn: 'The reality of reliance (tawakkul) is the serenity of the heart in its Divine Trustee.' },
-      { id: 40, quarter: 'Virtues', quarterAr: 'رُبْع المُنْجِيَات', titleEn: 'Remembrance of Death and Afterlife (Dhikr al-Mawt)', titleAr: 'كِتَاب ذِكْر المَوْت ومَا بَعْدَه', desc: 'Preparation for the final journey and eternal life.', sampleAr: 'اكْثِرُوا مِنْ ذِكْرِ هَاذِمِ اللَّذَّاتِ: الْمَوْتِ، فَإِنَّهُ يُوقِظُ الْغَافِلِينَ.', sampleEn: 'Remember frequently the destroyer of ephemeral pleasures: death, for it awakens the heedless.' }
-    ];
-
-    const CHANNELS_DATA = [
-      { id: 'ghazali', nameAr: 'الإِمَام أَبُو حَامِد الغَزَالِي (حُجَّة الإِسْلَام)', nameEn: 'Imam Abu Hamid Al-Ghazali', title: 'Hujjat al-Islam • Master of Spiritual Epistemology', desc: 'Author of Ihya Ulum al-Din, Tahafut al-Falasifa, and Al-Munqidh min al-Dalal.' },
-      { id: 'asrar', nameAr: 'الشَّيْخ أَسْرَار رَشِيد', nameEn: 'Shaykh Asrar Rashid', title: 'Theologian, Faqih, Logician • Ahl al-Sunnah', desc: 'Classical Kalam, Logic (Mantiq), Hanafi Fiqh, and contemporary philosophical treatises.' },
-      { id: 'ahmad', nameAr: 'الشَّيْخ أَحْمَد', nameEn: 'Shaykh Ahmad', title: 'Spiritual Guide • Al-Hikma wa al-Tazkiyah', desc: 'Discourses on Hikam Ibn Ata Allah, purification of the soul, and classical Tasawwuf.' },
-      { id: 'hamza', nameAr: 'الشَّيْخ حَمْزَة يُوسُف', nameEn: 'Shaykh Hamza Yusuf', title: 'President of Zaytuna College • Educator & Author', desc: 'Purification of the Heart, Matn Ibn Ashir, Classical Arabic Rhetoric, and Ethics.' }
-    ];
-
-    let currentWallet = {
-      address: '0x8bd160f61ba74c2792f3befb7abca8852f110a25',
-      privateKey: '0x3a1076bf45ab877123cdba889102431765439871029384756102938475610293',
-      mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access accident',
-      balance: '100.0000',
-      symbol: 'ZBAT'
-    };
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
-      const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(tabId));
-      if (targetBtn) targetBtn.classList.add('active');
-      
-      const targetContent = document.getElementById('tab-' + tabId);
-      if (targetContent) targetContent.classList.add('active');
-    }
-
-    function switchLibrarySubtab(subtab) {
-      if (subtab === 'books') {
-        document.getElementById('btn-subtab-books').classList.remove('btn-outline');
-        document.getElementById('btn-subtab-channels').classList.add('btn-outline');
-        document.getElementById('books-list-container').style.display = 'flex';
-        document.getElementById('channels-list-container').style.display = 'none';
-        document.getElementById('quarter-filter-row').style.display = 'flex';
-      } else {
-        document.getElementById('btn-subtab-books').classList.add('btn-outline');
-        document.getElementById('btn-subtab-channels').classList.remove('btn-outline');
-        document.getElementById('books-list-container').style.display = 'none';
-        document.getElementById('channels-list-container').style.display = 'flex';
-        document.getElementById('quarter-filter-row').style.display = 'none';
-      }
-    }
-
-    function renderBooks(quarter) {
-      const container = document.getElementById('books-list-container');
-      container.innerHTML = '';
-      const filtered = quarter === 'All' ? BOOKS_DATA : BOOKS_DATA.filter(b => b.quarter === quarter);
-
-      filtered.forEach(book => {
-        const card = document.createElement('div');
-        card.className = 'book-item-card';
-        card.onclick = () => openBookReader(book);
-        card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <span class="brand-badge">BOOK #${book.id}</span>
-            <span style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;">${book.quarterAr}</span>
-          </div>
-          <div style="color:var(--accent); font-size:1.05rem; font-weight:700; text-align:right;">${book.titleAr}</div>
-          <div style="color:#FFF; font-size:0.9rem; font-weight:600; margin-top:2px;">${book.titleEn}</div>
-          <div style="color:var(--text-muted); font-size:0.75rem; margin-top:4px;">${book.desc}</div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function renderChannels() {
-      const container = document.getElementById('channels-list-container');
-      container.innerHTML = '';
-      CHANNELS_DATA.forEach(c => {
-        const card = document.createElement('div');
-        card.className = 'book-item-card';
-        card.innerHTML = `
-          <div style="color:var(--accent); font-size:1.1rem; font-weight:700; text-align:right;">${c.nameAr}</div>
-          <div style="color:#FFF; font-size:0.95rem; font-weight:600;">${c.nameEn}</div>
-          <div style="color:var(--accent); font-size:0.75rem; font-family:monospace; margin-top:2px;">${c.title}</div>
-          <div style="color:var(--text-muted); font-size:0.75rem; margin-top:4px;">${c.desc}</div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function filterBooks(q) {
-      document.querySelectorAll('#quarter-filter-row .peer-chip').forEach(c => c.classList.remove('selected'));
-      event.target.classList.add('selected');
-      renderBooks(q);
-    }
-
-    function openBookReader(book) {
-      document.getElementById('modal-book-badge').innerText = `BOOK #${book.id} • ${book.quarterAr}`;
-      document.getElementById('modal-book-title-ar').innerText = book.titleAr;
-      document.getElementById('modal-book-title-en').innerText = book.titleEn;
-      document.getElementById('modal-book-desc').innerText = book.desc;
-      document.getElementById('modal-book-ar-text').innerText = book.sampleAr;
-      document.getElementById('modal-book-en-text').innerText = book.sampleEn;
-      document.getElementById('modal-book-reader').classList.add('open');
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).classList.remove('open');
-    }
-
-    // Chat Logic
-    function selectPeer(peer) {
-      document.querySelectorAll('#peersStrip .peer-chip').forEach(c => c.classList.remove('selected'));
-      event.currentTarget.classList.add('selected');
-    }
-
-    function sendChatMessage() {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      const container = document.getElementById('chatBox');
-      container.innerHTML += `
-        <div class="msg-bubble self">
-          <div class="msg-header">
-            <span class="msg-author">You</span>
-            <span>Now</span>
-          </div>
-          <div>${text}</div>
+          <button class="dtmf-key special" data-key="*">*<span class="sub">941/1209</span></button>
+          <button class="dtmf-key" data-key="0">0<span class="sub">941/1336</span></button>
+          <button class="dtmf-key special" data-key="#">#<span class="sub">941/1477</span></button>
+          <button class="dtmf-key special" data-key="D">D<span class="sub">941/1633</span></button>
         </div>
-      `;
-      input.value = '';
-      container.scrollTop = container.scrollHeight;
+        <div class="dtmf-display">
+          <span class="display-label">ACOUSTIC STREAM:</span>
+          <span class="display-value" id="dtmf-sequence-display">READY</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      setTimeout(() => {
-        let reply = 'Acknowledged. ZBAT dual-layer packet received on Subnet 51950.';
-        if (text.startsWith('/tip')) {
-          reply = 'Received gasless token tip via zero-fee relayer. Jazaak Allahu Khayran!';
-        }
-        container.innerHTML += `
-          <div class="msg-bubble peer">
-            <div class="msg-header">
-              <span class="msg-author">Khalid [Node_02]</span>
-              <span>Now</span>
+  <!-- 5. User Profile Modal -->
+  <div class="modal-overlay" id="modal-user-profile">
+    <div class="modal-card profile-card">
+      <div class="profile-banner">
+        <div class="profile-avatar-large" id="profile-modal-avatar">WN</div>
+        <button class="modal-close banner-close" data-close="modal-user-profile">&times;</button>
+      </div>
+      <div class="profile-body">
+        <div class="profile-header-info">
+          <h3 class="profile-name" id="profile-modal-name">antigravity</h3>
+          <span class="profile-badge">ZBAT PEER</span>
+        </div>
+        <div class="profile-id-row">
+          <span class="profile-full-id" id="profile-modal-id">peer@00000000</span>
+        </div>
+        
+        <div class="profile-section">
+          <div class="profile-sec-title">MESH STATUS &amp; CONNECTION</div>
+          <div class="profile-status-box">
+            <div class="profile-stat-item">
+              <span class="stat-lbl">Hudur State:</span>
+              <span class="stat-val hadir" id="profile-modal-status">ONLINE (حَاضِر)</span>
             </div>
-            <div>${reply}</div>
+            <div class="profile-stat-item">
+              <span class="stat-lbl">Direct Latency:</span>
+              <span class="stat-val" id="profile-modal-latency">11ms</span>
+            </div>
+            <div class="profile-stat-item">
+              <span class="stat-lbl">Ratchet Handshake:</span>
+              <span class="stat-val emerald">Miftah-Ready</span>
+            </div>
           </div>
-        `;
-        container.scrollTop = container.scrollHeight;
-      }, 500);
-    }
-
-    function createMeshGroup() {
-      const name = document.getElementById('newGroupName').value.trim();
-      if (!name) return alert('Enter group name.');
-      alert('Mesh Group Created: ' + name);
-      document.getElementById('newGroupName').value = '';
-    }
-
-    function sendMeshGroupMessage() {
-      const input = document.getElementById('groupMsgInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      const container = document.getElementById('groupChatBox');
-      container.innerHTML += `
-        <div class="msg-bubble self">
-          <div class="msg-header"><span class="msg-author">You</span><span>Now</span></div>
-          <div>${text}</div>
         </div>
-      `;
-      input.value = '';
-      container.scrollTop = container.scrollHeight;
-    }
 
-    function publishNashrPost() {
-      const input = document.getElementById('postContent');
-      const text = input.value.trim();
-      if (!text) return;
+        <div class="profile-actions-grid">
+          <button class="btn btn-primary btn-dm-action" id="btn-start-direct-dm">
+            Direct Chat (مُحَادَثَة)
+          </button>
+          <button class="btn btn-tunnel-action" id="btn-start-p2p-tunnel">
+            Nafaq Tunnel (نَفَق)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      const container = document.getElementById('feedList');
-      container.innerHTML = `
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-family:monospace; margin-bottom:4px;">
-            <span style="color:var(--accent); font-weight:700;">did:wyre:${currentWallet.address}</span>
-            <span style="color:var(--text-muted);">Block #648 • Signed</span>
+  <!-- 6. Nafaq P2P Tunnel Dashboard Modal -->
+  <div class="modal-overlay" id="modal-nafaq-dashboard">
+    <div class="modal-card tunnel-modal-card">
+      <div class="modal-header">
+        <h3>Nafaq P2P VPN Tunnel Dashboard (لَوْحَة النَّفَق)</h3>
+        <button class="modal-close" data-close="modal-nafaq-dashboard">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="tunnel-status-header">
+          <div class="tunnel-status-indicator-wrap">
+            <span class="tunnel-pulse-dot"></span>
           </div>
-          <div style="font-size:0.9rem;">${text}</div>
+          <div>
+            <h4 class="tunnel-state-title">P2P TUNNEL ACTIVE (نَفَق قَائِم و مُشَفَّر)</h4>
+            <p class="tunnel-state-desc">Encrypted WireGuard-grade tunnel with direct peer forward-secrecy.</p>
+          </div>
         </div>
-      ` + container.innerHTML;
-      input.value = '';
-    }
 
-    // Wallet Operations
-    function generateNewAddress() {
-      const randHex = Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('');
-      currentWallet.address = '0x' + randHex;
-      currentWallet.balance = '100.0000';
-      document.getElementById('wallet-address').innerText = currentWallet.address;
-      document.getElementById('wallet-balance').innerText = currentWallet.balance;
-      alert('New Sovereign Address Generated:\n' + currentWallet.address);
-    }
+        <div class="diag-grid">
+          <div class="diag-card">
+            <span class="diag-label">VIRTUAL MESH IP</span>
+            <span class="diag-val emerald" id="diag-tunnel-ip">10.240.0.2 / 24</span>
+          </div>
+          <div class="diag-card">
+            <span class="diag-label">PEER ENDPOINT</span>
+            <span class="diag-val" id="diag-tunnel-peer">peer@mesh</span>
+          </div>
+          <div class="diag-card">
+            <span class="diag-label">SOCKS5 PROXY</span>
+            <span class="diag-val emerald">127.0.0.1:1080 (READY)</span>
+          </div>
+          <div class="diag-card">
+            <span class="diag-label">RATCHET CIPHER</span>
+            <span class="diag-val">ChaCha20-Poly1305</span>
+          </div>
+          <div class="diag-card">
+            <span class="diag-label">DIRECT LATENCY</span>
+            <span class="diag-val emerald" id="diag-tunnel-latency">8ms</span>
+          </div>
+          <div class="diag-card">
+            <span class="diag-label">HANDSHAKE STATE</span>
+            <span class="diag-val emerald">MUTABASIM (مُتَبَاسِم)</span>
+          </div>
+        </div>
 
-    function copyAddress() {
-      navigator.clipboard.writeText(currentWallet.address);
-      alert('Address copied to clipboard:\n' + currentWallet.address);
-    }
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="btn-rekey-tunnel">Re-Key Ratchet (تَجْدِيد)</button>
+          <button class="btn btn-secondary" id="btn-teardown-tunnel">Disconnect Tunnel</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    function openExportModal() {
-      document.getElementById('export-key-val').innerText = currentWallet.privateKey;
-      document.getElementById('modal-export').classList.add('open');
-    }
+  <!-- 7. Identity Settings Modal -->
+  <div class="modal-overlay" id="modal-user-settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Identity &amp; Persona Settings (الهُوِيَّة)</h3>
+        <button class="modal-close" data-close="modal-user-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="settings-username-input">Custom Username / Persona</label>
+          <input type="text" id="settings-username-input" class="form-control" placeholder="e.g. khalid, omar, tariq, shadow..." maxlength="24">
+        </div>
+        <div class="form-group">
+          <label>Cryptographic Mesh ID</label>
+          <div class="profile-id-row">
+            <span id="settings-full-id-display">peer@00000000</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="btn-generate-random-identity">Random</button>
+          <button class="btn btn-primary" id="btn-save-username">Save Identity (حِفْظ)</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    function copyExportedKey() {
-      navigator.clipboard.writeText(currentWallet.privateKey);
-      alert('Private key copied to clipboard!');
-    }
+  <!-- 8. Lisan al-Arab Lexicon Modal -->
+  <div class="modal-overlay" id="modal-lisan-lexicon">
+    <div class="modal-card lisan-modal-card">
+      <div class="modal-header lisan-header">
+        <div class="lisan-header-title">
+          <span class="lisan-icon" style="font-size:12px; font-weight:800; color:var(--matrix-green);">[LIS]</span>
+          <div>
+            <h3>Lisan al-Arab Protocol Lexicon</h3>
+            <span class="lisan-sub">مُعْجَم لِسَان العَرَب و الأُصُول الرِّيَاضِيَّة لِلشَّبَكَة</span>
+          </div>
+        </div>
+        <button class="modal-close" data-close="modal-lisan-lexicon">&times;</button>
+      </div>
 
-    function openMnemonicModal() {
-      const grid = document.getElementById('mnemonic-grid');
-      grid.innerHTML = '';
-      currentWallet.mnemonic.split(' ').forEach((w, idx) => {
-        grid.innerHTML += `<div class="word-cell"><span style="color:var(--accent);">#${idx+1}</span> ${w}</div>`;
-      });
-      document.getElementById('modal-mnemonic').classList.add('open');
-    }
+      <div class="lisan-search-bar-wrap">
+        <input type="text" class="lisan-search-input" id="lisan-search-input" placeholder="Search Arabic root (e.g. ثقب, نفق, ظهر, بطن, فتح, نغم, بثث)...">
+        <div class="lisan-quick-tags">
+          <button class="lisan-tag-btn" data-query="zahir">ظَاهِر (Zahir)</button>
+          <button class="lisan-tag-btn" data-query="batin">بَاطِن (Batin)</button>
+          <button class="lisan-tag-btn" data-query="miftah">مِفْتَاح (E2EE)</button>
+          <button class="lisan-tag-btn" data-query="thaqb">ثَقْب (Ratchet)</button>
+          <button class="lisan-tag-btn" data-query="nafaq">نَفَق (Tunnel)</button>
+          <button class="lisan-tag-btn" data-query="nagham">نَغَم (DTMF)</button>
+          <button class="lisan-tag-btn" data-query="bathth">بَثّ (Gossip)</button>
+          <button class="lisan-tag-btn" data-query="hudur">حُضُور (Hudur)</button>
+        </div>
+      </div>
 
-    function copyMnemonic() {
-      navigator.clipboard.writeText(currentWallet.mnemonic);
-      alert('12-word recovery phrase copied to clipboard!');
-    }
+      <div class="lisan-lexicon-container" id="lisan-lexicon-grid"></div>
+    </div>
+  </div>
 
-    function openImportModal() {
-      document.getElementById('import-val').value = '';
-      document.getElementById('modal-import').classList.add('open');
-    }
+  <!-- 9. Uniswap / AppKit Style Web3 Wallet Modal -->
+  <div class="uni-modal-overlay" id="uniswap-wallet-modal">
+    <div class="uni-modal-sheet">
+      <div class="uni-modal-header">
+        <div class="uni-modal-title" id="modal-dynamic-title">Connect a Web3 Wallet</div>
+        <button class="uni-close-btn" onclick="closeUniswapModal()">&times;</button>
+      </div>
 
-    function executeImport() {
-      const val = document.getElementById('import-val').value.trim();
-      if (!val) return alert('Enter mnemonic or key.');
-      const randHex = Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('');
-      currentWallet.address = '0x' + randHex;
-      document.getElementById('wallet-address').innerText = currentWallet.address;
-      closeModal('modal-import');
-      alert('Vault restored! Address: ' + currentWallet.address);
-    }
+      <div id="uni-injected-banner" style="display:none; background:rgba(0, 245, 155, 0.12); border:1px solid var(--border-emerald); border-radius:14px; padding:12px; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-weight:800; color:#fff; font-size:0.88rem;" id="injected-banner-title">Web3 Extension Detected</div>
+          <div style="font-size:0.72rem; color:var(--matrix-green);">Ready in current session</div>
+        </div>
+        <button onclick="connectInjectedNow()" class="btn-pill btn-pill-green">Connect</button>
+      </div>
 
-    function requestFaucetFunds() {
-      const cur = parseFloat(currentWallet.balance) || 0;
-      currentWallet.balance = (cur + 100).toFixed(4);
-      document.getElementById('wallet-balance').innerText = currentWallet.balance;
-      alert('Faucet Confirmed! 100 ZBAT credited on Subnet 51950.');
-    }
+      <div id="wallet-options-list" style="display:flex; flex-direction:column; gap:8px;">
+        <button onclick="connectMetaMaskDirect()" class="wallet-btn-card">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div class="wallet-icon-box">W3</div>
+            <div>
+              <div style="font-weight:800;">MetaMask / Injected</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">Browser Extension or Mobile App</div>
+            </div>
+          </div>
+          <span class="l1-did-badge verified">PRIMARY</span>
+        </button>
 
-    function executeTransfer() {
-      const to = document.getElementById('send-to').value.trim();
-      const amt = document.getElementById('send-amount').value.trim();
-      if (!to || !amt) return alert('Enter recipient and amount.');
-      const cur = parseFloat(currentWallet.balance) || 0;
-      const sendVal = parseFloat(amt) || 0;
-      if (sendVal > cur) return alert('Insufficient balance.');
-      currentWallet.balance = (cur - sendVal).toFixed(4);
-      document.getElementById('wallet-balance').innerText = currentWallet.balance;
-      const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-      alert(`Gasless Transfer Confirmed on Subnet 51950!\nHash: ${txHash}\nRecipient: ${to}\nAmount: ${amt} ZBAT\nSponsorship: Zero Gas Fee`);
-      document.getElementById('send-to').value = '';
-    }
+        <button onclick="switchMainView('blockchain'); closeUniswapModal();" class="wallet-btn-card">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div class="wallet-icon-box" style="color:var(--matrix-green);">L1</div>
+            <div>
+              <div style="font-weight:800;">Generate Sovereign 12-Word Wallet</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">Zero-extension native BIP-39 mnemonic</div>
+            </div>
+          </div>
+          <span class="l1-did-badge verified">INSTANT</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
-    async function runDiagnostics() {
-      const card = document.getElementById('diagnostics-card');
-      const box = document.getElementById('test-console-box');
-      card.style.display = 'block';
-      box.innerHTML = 'Running WyreNet Diagnostic Suite...\n';
+  <!-- 10. Dual-Pane In-Browser Book Reader Modal -->
+  <div class="modal-overlay" id="modal-book-reader">
+    <div class="reader-modal-card">
+      <div class="reader-header">
+        <div class="reader-header-title">
+          <h3 id="reader-book-title">Ihya Ulum al-Din: Book 1</h3>
+          <div class="reader-sub" id="reader-book-arabic">إِحْيَاء عُلُوم الدِّين - كِتَاب العِلْم</div>
+        </div>
+        <button class="modal-close" onclick="closeBookReader()">&times;</button>
+      </div>
+      <div class="reader-toolbar">
+        <button class="btn-pill btn-pill-green" id="btn-reader-download-epub">Download EPUB</button>
+        <button class="btn-pill" style="background:rgba(255,255,255,0.08); color:#fff;" id="btn-reader-open-channel">Discuss in Channel</button>
+        <span style="margin-left:auto; color:var(--text-muted); font-size:0.8rem;" id="reader-reading-status">Synchronized Authentic Text</span>
+      </div>
+      <div class="reader-body-split">
+        <div class="reader-pane arabic" id="reader-arabic-content">
+          <h4>النَّصّ العَرَبِيّ الأَصِيل</h4>
+          <p>جاري تحميل النص الأصلي...</p>
+        </div>
+        <div class="reader-pane english" id="reader-english-content">
+          <h4>ENGLISH TRANSLATION</h4>
+          <p>Loading English translation...</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      const steps = [
-        'BIP-39 Mnemonic & EVM Key Derivation: PASSED',
-        'EIP-191 Challenge Signing & Public Key Recovery: PASSED',
-        'EIP-712 Structured Gasless Data Hashing: PASSED',
-        'ZBAT Dual-Layer Encapsulation (Zahir / Batin): PASSED',
-        'Miftah Puncturable Forward-Secrecy Ratchet: PASSED',
-        'Ihya 40 Books & Imam Channels Verification: PASSED',
-        'WebSocket Mesh Relay Signaling (Port 9000): PASSED'
-      ];
+  <!-- Toast Notification -->
+  <div class="wyre-toast" id="wyre-toast">
+    <span id="wyre-toast-icon">[*]</span>
+    <span id="wyre-toast-msg">Notification</span>
+  </div>
 
-      for (let s of steps) {
-        await new Promise(r => setTimeout(r, 180));
-        box.innerHTML += `[PASS] ${s}\n`;
-        box.scrollTop = box.scrollHeight;
-      }
-      box.innerHTML += '\n=======================================================\nALL 7 TESTS PASSED WITH 100% OPERATIONAL STABILITY\n=======================================================\n';
-    }
-
-    // Auto-render on DOM ready
-    window.addEventListener('DOMContentLoaded', () => {
-      renderBooks('All');
-      renderChannels();
-    });
-  </script>
+  <!-- Main Application JavaScript -->
+  <script src="app.js?v=1789230000"></script>
+  <script src="wyrenet_runtime.js?v=1789230000"></script>
 </body>
 </html>

@@ -45,3 +45,12 @@ yarn-error.log
 /coverage
 .yarn/*
 node_modules
+
+# Environment & Secrets
+.env
+.env.*
+*.key
+*.pem
+*.secret
+*.tar.gz
+*.zip

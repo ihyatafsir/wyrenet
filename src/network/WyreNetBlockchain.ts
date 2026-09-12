@@ -41,7 +41,7 @@ export class WyreNetBlockchain {
     public readonly chainId: number = 51950;
     public readonly subnetId: string = '2HmQcbYmNdjDPsA53R4hThwr2Ec4UTz1pe5MvATFSkgGr1CDtU';
     public readonly blockchainId: string = 'VUdr1jxE17zSgnb7m4cK2bnvru27G6mWnZwx7749MCbNjBHne';
-    public readonly tokenSymbol: string = 'ZBAT';
+    public readonly tokenSymbol: string = 'WYRE';
     
     // Zero-domain RPC endpoints
     private rpcEndpoints: string[] = [

@@ -2,7 +2,7 @@
  * WyreWalletEngine - Native Self-Custodial EVM Crypto Wallet Engine
  * 
  * Supports:
- * - WyreNet Sovereign L1 Subnet (ChainID: 51950, Token: ZBAT)
+ * - WyreNet Sovereign L1 Subnet (ChainID: 51950, Token: WYRE)
  * - Avalanche Fuji Testnet C-Chain (ChainID: 43113, Token: AVAX)
  * - On-Demand Wallet Address Generation & Key Pair Derivation
  * - Import / Export Private Key (Hex) & 12-Word Mnemonic Phrase
@@ -61,7 +61,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     id: 'wyrenet',
     name: 'WyreNet Sovereign L1 Subnet',
     chainId: 51950,
-    symbol: 'ZBAT',
+    symbol: 'WYRE',
     rpcUrls: [
       'http://127.0.0.1:9650/ext/bc/VUdr1jxE17zSgnb7m4cK2bnvru27G6mWnZwx7749MCbNjBHne/rpc',
       'http://10.0.2.2:9650/ext/bc/VUdr1jxE17zSgnb7m4cK2bnvru27G6mWnZwx7749MCbNjBHne/rpc'
