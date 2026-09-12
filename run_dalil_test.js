@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const ShabahStego_1 = require("./src/network/ShabahStego");
+const cover = 'Just had the best coffee this morning! ☕ Nothing beats a fresh brew to start the day. #MondayMotivation';
+const payload = JSON.stringify({ i: 'peer_xsascps7', k: 'abcdef1234567890abcdef12345678901', endpoints: [], nonce: '123' });
+console.log('Payload len:', payload.length);
+const result = ShabahStego_1.shabahStego.hideInText(cover, payload);
+const stegoText = result.stegoData;
+console.log('Stego published len:', stegoText.length);
+const ex = ShabahStego_1.shabahStego.extractFromText(stegoText);
+console.log('Extracted raw:', ex);

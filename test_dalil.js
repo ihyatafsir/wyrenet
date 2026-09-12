@@ -1,0 +1,12 @@
+const { shabahStego } = require('./src/network/ShabahStego.js');
+const { maladhDiscovery } = require('./src/network/MaladhDiscovery.js');
+console.log('1. Starting test Dalil');
+maladhDiscovery.activate();
+maladhDiscovery.toggleMethod('dalil', true);
+const b = { peerId: 'peer', publicKey: 'pub', endpoints: [{type:'tcp', host:'127.0.0.1', port: 9000}], nonce: '123', timestamp: 0 };
+const coverText = 'Just had the best coffee this morning! ☕ Nothing beats a fresh brew to start the day. #MondayMotivation';
+console.log('2. Creating Dalil');
+const stegoText = maladhDiscovery.dalilPublish(b, coverText);
+console.log('3. Extracting Dalil');
+const ex = maladhDiscovery.dalilExtract(stegoText);
+console.log('4. Done', ex);

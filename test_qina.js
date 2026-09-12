@@ -1,0 +1,12 @@
+const { shabahStego } = require('./src/network/ShabahStego.js');
+const { maladhDiscovery } = require('./src/network/MaladhDiscovery.js');
+console.log('1. Starting test');
+maladhDiscovery.activate();
+maladhDiscovery.toggleMethod('qina', true);
+const b = { peerId: 'peer', publicKey: 'pub', endpoints: [{type:'tcp', host:'127.0.0.1', port: 9000}], nonce: '123', timestamp: 0 };
+console.log('2. Creating probe');
+const probe = maladhDiscovery.qinaCreateProbe(b);
+console.log('3. Extracting probe');
+console.log('Url:', probe.url);
+const ex = maladhDiscovery.qinaExtractProbe(probe.url, probe.headers);
+console.log('4. Done', ex);
