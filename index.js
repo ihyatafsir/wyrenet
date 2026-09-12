@@ -1,10 +1,56 @@
-// Crypto polyfill - MUST be first import before anything else
+// 1. Mandatory crypto polyfills - MUST BE FIRST
 import 'react-native-get-random-values';
+import { Buffer } from 'buffer';
 
-/**
- * @format
- */
+// 2. Global Environment Polyfills for Hermes / JSC
+if (typeof global.Buffer === 'undefined') {
+  global.Buffer = Buffer;
+}
 
+class PolyfillTextEncoder {
+  encode(str) {
+    if (typeof str !== 'string') str = String(str || '');
+    const utf8 = unescape(encodeURIComponent(str));
+    const result = new Uint8Array(utf8.length);
+    for (let i = 0; i < utf8.length; i++) {
+      result[i] = utf8.charCodeAt(i);
+    }
+    return result;
+  }
+}
+
+class PolyfillTextDecoder {
+  decode(bytes) {
+    if (!bytes || bytes.length === 0) return '';
+    let utf8 = '';
+    const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    for (let i = 0; i < arr.length; i++) {
+      utf8 += String.fromCharCode(arr[i]);
+    }
+    try {
+      return decodeURIComponent(escape(utf8));
+    } catch (e) {
+      return utf8;
+    }
+  }
+}
+
+if (typeof global.TextEncoder === 'undefined') {
+  global.TextEncoder = PolyfillTextEncoder;
+}
+if (typeof global.TextDecoder === 'undefined') {
+  global.TextDecoder = PolyfillTextDecoder;
+}
+
+if (typeof global.process === 'undefined') {
+  global.process = { env: {} };
+}
+
+if (typeof global.crypto === 'undefined') {
+  global.crypto = {};
+}
+
+// 3. Register Main Application Component
 import { AppRegistry } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
