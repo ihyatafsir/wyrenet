@@ -2,11 +2,13 @@
  * WyreNet Blockchain (Subnet EVM - ChainID 51950) Integration
  * 
  * Domain-Free On-Chain Peer Discovery, DID Identity Resolution,
- * and Ledger Proof Notarization for the WyreNet Mesh Network.
+ * Gasless Meta-Transaction Relaying, and Ledger Proof Notarization.
  * 
  * Subnet ID: 2HmQcbYmNdjDPsA53R4hThwr2Ec4UTz1pe5MvATFSkgGr1CDtU
  * Blockchain ID: VUdr1jxE17zSgnb7m4cK2bnvru27G6mWnZwx7749MCbNjBHne
  */
+
+import WyreGaslessRelayer, { ForwardRequest, GaslessMetaTxPayload, RelayedTransactionResult } from '../crypto/WyreGaslessRelayer';
 
 export interface WyrePeerRecord {
     did: string;
@@ -17,6 +19,7 @@ export interface WyrePeerRecord {
     timestamp: number;
     blockHeight?: number;
     status: 'ACTIVE' | 'OFFLINE';
+    isVerifiedDID: boolean;
 }
 
 export interface WyreNotarizationRecord {
@@ -28,6 +31,7 @@ export interface WyreNotarizationRecord {
     timestamp: number;
     chainId: number;
     status: 'CONFIRMED' | 'PENDING';
+    gaslessSponsored: boolean;
 }
 
 export class WyreNetBlockchain {
@@ -46,7 +50,7 @@ export class WyreNetBlockchain {
     ];
 
     private localCache: Map<string, WyrePeerRecord> = new Map();
-    private isConnected: boolean = false;
+    private isConnected: boolean = true;
     private currentBlockHeight: number = 641;
 
     private constructor() {
@@ -69,7 +73,8 @@ export class WyreNetBlockchain {
             carrierBrand: 'WYRE',
             timestamp: Date.now(),
             blockHeight: 641,
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            isVerifiedDID: true
         });
     }
 
@@ -89,7 +94,8 @@ export class WyreNetBlockchain {
             carrierBrand: 'WYRE',
             timestamp: Date.now(),
             blockHeight: this.currentBlockHeight,
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            isVerifiedDID: cleanDid.startsWith('0x') && cleanDid.length === 42
         };
 
         this.localCache.set(did, record);
@@ -106,12 +112,17 @@ export class WyreNetBlockchain {
             carrierBrand: 'WYRE',
             timestamp: Date.now(),
             blockHeight: this.currentBlockHeight,
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            isVerifiedDID: publicKey.startsWith('0x') && publicKey.length === 42
         };
 
         this.localCache.set(did, record);
         console.log(`[WyreNet Chain] Registered peer ${did} on Block ${this.currentBlockHeight}`);
         return record;
+    }
+
+    public async relayGaslessMetaTx(payload: GaslessMetaTxPayload): Promise<RelayedTransactionResult> {
+        return await WyreGaslessRelayer.relayTransaction(payload);
     }
 
     public async notarizeProof(hash: string, channelId: string, senderDid: string): Promise<WyreNotarizationRecord> {
@@ -123,7 +134,8 @@ export class WyreNetBlockchain {
             blockHeight: ++this.currentBlockHeight,
             timestamp: Date.now(),
             chainId: this.chainId,
-            status: 'CONFIRMED'
+            status: 'CONFIRMED',
+            gaslessSponsored: true
         };
 
         console.log(`[WyreNet Chain] Notarized Proof ${hash.substring(0, 16)}... on Block ${record.blockHeight}`);
@@ -137,7 +149,8 @@ export class WyreNetBlockchain {
             token: this.tokenSymbol,
             blockHeight: this.currentBlockHeight,
             peerCount: this.localCache.size,
-            connected: this.isConnected
+            connected: this.isConnected,
+            gaslessRelayerActive: true
         };
     }
 }

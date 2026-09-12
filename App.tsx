@@ -2,8 +2,9 @@
 import 'react-native-get-random-values';
 
 /**
- * WyreNet - Sovereign Mesh & Blockchain Edition
+ * WyreNet - Sovereign Mesh & Avalanche L1 Subnet Blockchain Edition
  * وايرنِت
+ * Zero Domain Dependency - Native Embedded Crypto Wallet
  */
 
 import React, { useState, useEffect } from 'react';
@@ -27,57 +28,74 @@ import TunnelScreen from './src/screens/TunnelScreen';
 import NaghamScreen from './src/screens/NaghamScreen';
 import MaladhScreen from './src/screens/MaladhScreen';
 import { deserializeIdentity, WyreSUpIdentity } from './src/utils/Identity';
-import { Peer } from './src/messaging/types';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Tab bar icons
+// Typographic Tab bar labels (Zero Emojis)
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Wallet: '💎',
-    P2P: '🌐',
-    Tunnel: '🚇',
-    Voice: '🎵',
-    Stealth: '🕶️',
-    Nearby: '📡',
-    Contacts: '👥',
-    Requests: '🔔',
-    Feed: '📝',
-    Tests: '🧪',
-    Settings: '⚙️',
+  const codes: Record<string, string> = {
+    Wallet: '[W]',
+    P2P: '[P2P]',
+    Tunnel: '[TUN]',
+    Voice: '[VOX]',
+    Stealth: '[STL]',
+    Nearby: '[NRB]',
+    Contacts: '[USR]',
+    Requests: '[REQ]',
+    Feed: '[FED]',
+    Tests: '[TST]',
+    Settings: '[CFG]',
   };
   return (
-    <Text style={{ fontSize: 24, opacity: focused ? 1 : 0.5 }}>
-      {icons[name] || '•'}
+    <Text style={{ fontSize: 11, fontWeight: '800', color: focused ? '#00FF66' : '#666666', fontFamily: 'monospace' }}>
+      {codes[name] || '[-]'}
     </Text>
   );
 }
 
-// Settings placeholder
+// Settings Screen with Avalanche Subnet 51950 Configuration
 function SettingsScreen() {
   const [identity, setIdentity] = useState<WyreSUpIdentity | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem('wyresup_identity').then(data => {
-      if (data) setIdentity(deserializeIdentity(data));
+    AsyncStorage.getItem('@wyrenet_identity').then(async (data) => {
+      if (data) {
+        setIdentity(deserializeIdentity(data));
+      } else {
+        const legacy = await AsyncStorage.getItem('wyresup_identity');
+        if (legacy) setIdentity(deserializeIdentity(legacy));
+      }
     });
   }, []);
 
   return (
     <View style={styles.settingsContainer}>
       <Text style={styles.settingsTitle}>WyreNet Settings</Text>
-      <Text style={styles.settingsSubtitle}>Sovereign L1 Blockchain Edition</Text>
-      {identity && (
-        <View style={styles.identityCard}>
-          <Text style={styles.identityLabel}>Your Peer ID</Text>
-          <Text style={styles.identityValue}>{identity.peerId}</Text>
-          <Text style={styles.identityLabel}>Display Name</Text>
-          <Text style={styles.identityValue}>{identity.displayName}</Text>
-          <Text style={styles.identityLabel}>Subnet ID</Text>
-          <Text style={styles.identityValue}>2HmQcbYmNdjDPsA53R4hThwr2Ec4UTz1pe5MvATFSkgGr1CDtU</Text>
-        </View>
-      )}
+      <Text style={styles.settingsSubtitle}>Sovereign L1 Blockchain Subnet 51950 (Testnet)</Text>
+      
+      <View style={styles.identityCard}>
+        <Text style={styles.identityLabel}>Blockchain Subnet ID</Text>
+        <Text style={styles.identityValue}>2HmQcbYmNdjDPsA53R4hThwr2Ec4UTz1pe5MvATFSkgGr1CDtU</Text>
+        
+        <Text style={styles.identityLabel}>Chain ID</Text>
+        <Text style={styles.identityValue}>51950 (ZBAT Token)</Text>
+
+        <Text style={styles.identityLabel}>Avalanche Fuji Testnet</Text>
+        <Text style={styles.identityValue}>43113 (AVAX Token)</Text>
+
+        <Text style={styles.identityLabel}>Zero-Domain Mode</Text>
+        <Text style={[styles.identityValue, { color: '#00FF66' }]}>ACTIVE (Zero Domain Dependencies)</Text>
+
+        {identity && (
+          <>
+            <Text style={styles.identityLabel}>Your Peer ID</Text>
+            <Text style={styles.identityValue}>{identity.peerId}</Text>
+            <Text style={styles.identityLabel}>Display Name</Text>
+            <Text style={styles.identityValue}>{identity.displayName}</Text>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -89,23 +107,28 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
         tabBarStyle: {
-          backgroundColor: '#0a0a0a',
-          borderTopColor: '#00ff6633',
+          backgroundColor: '#050B07',
+          borderTopColor: '#00FF6633',
           borderTopWidth: 1,
-          height: 65,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 60,
+          paddingBottom: 6,
+          paddingTop: 6,
         },
-        tabBarActiveTintColor: '#00ff66',
+        tabBarActiveTintColor: '#00FF66',
         tabBarInactiveTintColor: '#666',
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '700',
+        },
         headerStyle: {
-          backgroundColor: '#0a0a0a',
-          borderBottomColor: '#00ff6633',
+          backgroundColor: '#050B07',
+          borderBottomColor: '#00FF6633',
           borderBottomWidth: 1,
         },
-        headerTintColor: '#00ff66',
+        headerTintColor: '#00FF66',
         headerTitleStyle: {
           fontWeight: 'bold',
+          fontSize: 15,
         },
       })}
     >
@@ -134,7 +157,7 @@ export default function App() {
 
   const checkIdentity = async () => {
     try {
-      const identity = await AsyncStorage.getItem('wyresup_identity');
+      const identity = (await AsyncStorage.getItem('@wyrenet_identity')) || (await AsyncStorage.getItem('wyresup_identity'));
       setHasIdentity(!!identity);
     } catch {
       setHasIdentity(false);
@@ -144,20 +167,20 @@ export default function App() {
   if (hasIdentity === null) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading WyreNet...</Text>
+        <Text style={styles.loadingText}>Initializing WyreNet...</Text>
       </View>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+      <StatusBar barStyle="light-content" backgroundColor="#050B07" />
       <NavigationContainer>
         <Stack.Navigator
           initialRouteName={hasIdentity ? 'Main' : 'Welcome'}
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#0a0a0a' },
+            contentStyle: { backgroundColor: '#050B07' },
           }}
         >
           <Stack.Screen name="Welcome">
@@ -174,8 +197,8 @@ export default function App() {
             component={ChatScreen}
             options={{
               headerShown: true,
-              headerStyle: { backgroundColor: '#0a0a0a' },
-              headerTintColor: '#00ff66',
+              headerStyle: { backgroundColor: '#050B07' },
+              headerTintColor: '#00FF66',
               headerTitleStyle: { fontWeight: 'bold' },
             }}
           />
@@ -188,46 +211,49 @@ export default function App() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#050B07',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#00ff66',
-    fontSize: 18,
+    color: '#00FF66',
+    fontSize: 16,
+    fontFamily: 'monospace',
   },
   settingsContainer: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#050B07',
     padding: 20,
   },
   settingsTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#00ff66',
+    color: '#00FF66',
     marginBottom: 4,
   },
   settingsSubtitle: {
-    fontSize: 14,
-    color: '#668877',
+    fontSize: 13,
+    color: '#8492A6',
     marginBottom: 20,
   },
   identityCard: {
-    backgroundColor: '#111',
+    backgroundColor: '#0A1810',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#00ff6633',
+    borderColor: '#00FF6633',
   },
   identityLabel: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 8,
+    color: '#8492A6',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 10,
+    letterSpacing: 0.5,
   },
   identityValue: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: 13,
     fontFamily: 'monospace',
-    marginTop: 2,
+    marginTop: 3,
   },
 });
