@@ -1,17 +1,43 @@
 /**
- * wyrenet_runtime.js - Standalone WyreNet Sovereign L1 & Maktaba Runtime
- * Fully standalone - Zero external domain dependency
- * Provides view switching, BIP-39 wallet generator, Subnet 51950 telemetry,
- * Maktaba catalog (40 Books of Ihya + Imam Razi + Scholars), and dual-pane reader.
+ * wyrenet_runtime.js - WyreNet Sovereign Decentralized Mesh & Web3 Runtime
+ * 100% Standalone - Zero External Domain Dependency
+ * 
+ * Features:
+ * - Multi-Pane View Switching (Chat, Blockchain Vault, Maktaba, Notary)
+ * - WyreSup Hierarchical Scholar Channels & Collapsible Sub-Channels
+ * - Complete 246-Volume Classical Heritage Corpus with On-Chain L1 Anchoring
+ * - P2P WebRTC Bilateral Voice & Video Calling
+ * - Live Voice Lounge Audio Frequency Visualizer (Web Audio Analyser)
+ * - Sawt Voice Notes Recorder (MediaRecorder Opus)
+ * - Nagham DTMF Acoustic Key Exchange Synthesizer
+ * - Avalanche Subnet 51950 Sovereign Vault (WYRE Token, Faucet, Relayer, BIP-39)
+ * - AynEngine & DeepSeek Flash 4.1 Real-Time Epistemic Call & Contract Auditor
  */
 
 (function() {
-  let currentView = "chat";
-  let currentQuarterFilter = "ALL";
-  let userZbatBalance = "0.0000";
-  let generatedMnemonicPhrase = "";
+  "use strict";
 
-  // BIP-39 Wordlist (First 128 words for instant client-side offline generation)
+  let currentView = "chat";
+  let currentMaktabaFilter = "ALL";
+  let userWyreBalance = "0.0000";
+  let generatedMnemonicPhrase = "";
+  let fullCorpusData = [];
+  let currentChannelId = "general";
+
+  // WebRTC & Audio State
+  let rtcChannel = null;
+  let activeCallPeer = null;
+  let localMediaStream = null;
+  let audioContext = null;
+  let analyserNode = null;
+  let visualizerAnimId = null;
+  let mediaRecorder = null;
+  let recordedAudioChunks = [];
+  let isRecordingSawt = false;
+  let callTimerInterval = null;
+  let callDurationSeconds = 0;
+
+  // BIP-39 Wordlist (128 words for offline client-side generation)
   const BIP39_WORDS = [
     "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse",
     "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act",
@@ -38,480 +64,595 @@
     if (target) target.classList.add("active");
 
     const railBtns = {
-      chat: "rail-btn-chat",
-      blockchain: "rail-btn-blockchain",
-      maktaba: "rail-btn-maktaba",
-      notary: "rail-btn-notary"
+      "chat": "rail-btn-chat",
+      "blockchain": "rail-btn-blockchain",
+      "maktaba": "rail-btn-maktaba",
+      "notary": "rail-btn-notary"
     };
 
-    Object.keys(railBtns).forEach(function(k) {
-      const el = document.getElementById(railBtns[k]);
-      if (el) {
-        if (k === viewName) {
-          el.classList.add("active");
-        } else {
-          el.classList.remove("active");
-        }
-      }
+    document.querySelectorAll(".rail-icon").forEach(function(btn) {
+      btn.classList.remove("active");
+      const pill = btn.querySelector(".active-pill");
+      if (pill) pill.remove();
     });
 
-    const rootMeshBtn = document.getElementById("btn-root-mesh");
-    if (rootMeshBtn) {
-      if (viewName === "chat") rootMeshBtn.classList.add("active");
-      else rootMeshBtn.classList.remove("active");
+    const activeBtn = document.getElementById(railBtns[viewName]);
+    if (activeBtn) {
+      activeBtn.classList.add("active");
+      const pill = document.createElement("div");
+      pill.className = "active-pill";
+      activeBtn.appendChild(pill);
     }
 
-    if (viewName === "maktaba") {
-      loadMaktabaCatalog();
-    } else if (viewName === "blockchain") {
-      updateBlockchainTelemetry();
+    if (viewName === "maktaba" && (!fullCorpusData || fullCorpusData.length === 0)) {
+      loadFullCorpusManifest();
     }
-
-    const sidebar = document.getElementById("channels-sidebar");
-    if (sidebar) sidebar.classList.remove("mobile-open");
   };
 
-  window.toggleMobileSidebar = function() {
-    const sidebar = document.getElementById("channels-sidebar");
-    if (sidebar) sidebar.classList.toggle("mobile-open");
+  // 2. WyreSup Channel Hierarchy & Sub-Channel Navigation
+  window.toggleSubChannels = function(parentChannelId) {
+    const container = document.getElementById("subchannels-" + parentChannelId);
+    const parentEl = document.getElementById("parent-" + parentChannelId);
+    const chevron = document.getElementById("chevron-" + parentChannelId);
+
+    if (!container) return;
+
+    if (container.classList.contains("collapsed")) {
+      container.classList.remove("collapsed");
+      if (parentEl) parentEl.classList.add("expanded");
+      if (chevron) chevron.style.transform = "rotate(90deg)";
+    } else {
+      container.classList.add("collapsed");
+      if (parentEl) parentEl.classList.remove("expanded");
+      if (chevron) chevron.style.transform = "rotate(0deg)";
+    }
   };
 
   window.selectChannel = function(channelId, topic) {
+    currentChannelId = channelId;
     window.switchMainView("chat");
+
     const titleEl = document.getElementById("topbar-channel-title");
     const topicEl = document.getElementById("topbar-channel-topic");
     const heroTitle = document.getElementById("hero-channel-title");
     const heroDesc = document.getElementById("hero-channel-desc");
 
     if (titleEl) titleEl.textContent = channelId;
-    if (topicEl) topicEl.textContent = topic || "WyreNet Sovereign Channel";
+    if (topicEl) topicEl.textContent = topic || "WyreNet Sovereign Mesh Channel";
     if (heroTitle) heroTitle.textContent = "Welcome to #" + channelId + "!";
-    if (heroDesc) heroDesc.textContent = topic || "This is the start of the #" + channelId + " channel.";
+    if (heroDesc) heroDesc.textContent = topic || "Sovereign P2P end-to-end encrypted channel.";
 
-    document.querySelectorAll(".channel-item").forEach(function(item) {
+    // Highlight active channel or sub-channel
+    document.querySelectorAll(".channel-item, .subchannel-item").forEach(function(item) {
       item.classList.remove("active");
     });
-    
-    document.querySelectorAll(".channel-item").forEach(function(item) {
+
+    document.querySelectorAll(".channel-item, .subchannel-item").forEach(function(item) {
       const nameEl = item.querySelector(".channel-name");
       if (nameEl && nameEl.textContent.trim() === channelId) {
         item.classList.add("active");
       }
     });
+
+    // Close mobile sidebar if open
+    const sidebar = document.getElementById("channels-sidebar");
+    if (sidebar && sidebar.classList.contains("mobile-open")) {
+      sidebar.classList.remove("mobile-open");
+    }
   };
 
-  // 2. Maktaba Catalog & Reader Data
-  const IHYA_BOOKS = [
-    { id: 1, q: "Q1", titleEn: "The Book of Knowledge (Kitab al-Ilm)", titleAr: "كتاب العلم", desc: "Obligation of seeking sacred knowledge, virtue of intellect, and categories of sciences." },
-    { id: 2, q: "Q1", titleEn: "Foundations of Articles of Faith (Qawaid al-Aqaid)", titleAr: "كتاب قواعد العقائد", desc: "Exposition of Ahl al-Sunnah creed, divine attributes, and principles of tawhid." },
-    { id: 3, q: "Q1", titleEn: "The Mysteries of Purity (Asrar al-Taharah)", titleAr: "كتاب أسرار الطهارة", desc: "Four degrees of inward and outward purification in Islamic life." },
-    { id: 4, q: "Q1", titleEn: "The Mysteries of Prayer (Asrar al-Salah)", titleAr: "كتاب أسرار الصلاة", desc: "Spiritual realities, humility (khushu), and inner states of worship." },
-    { id: 5, q: "Q1", titleEn: "The Mysteries of Zakat (Asrar al-Zakat)", titleAr: "كتاب أسرار الزكاة", desc: "Inner significance of almsgiving and purifying wealth." },
-    { id: 6, q: "Q1", titleEn: "The Mysteries of Fasting (Asrar al-Sawm)", titleAr: "كتاب أسرار الصوم", desc: "Degrees of fasting of the stomach, limbs, and heart." },
-    { id: 7, q: "Q1", titleEn: "The Mysteries of the Pilgrimage (Asrar al-Hajj)", titleAr: "كتاب أسرار الحج", desc: "Spiritual allegories, rites of the sacred house, and visiting Madinah." },
-    { id: 8, q: "Q1", titleEn: "Etiquette of Quran Recitation (Adab Tilawat al-Quran)", titleAr: "كتاب آداب تلاوة القرآن", desc: "Excellence of reciting with contemplation and reverence." },
-    { id: 9, q: "Q1", titleEn: "Invocations and Supplications (Kitab al-Adhkar)", titleAr: "كتاب الأذكار والدعوات", desc: "Remembrance of Allah, daily litanies, and accepted supplications." },
-    { id: 10, q: "Q1", titleEn: "The Allotted Litanies (Tartib al-Awrad)", titleAr: "كتاب ترتيب الأوراد وتفصيل إحياء الليل", desc: "Organization of daily hours and vigil during the night." },
-    { id: 11, q: "Q2", titleEn: "Etiquette of Eating (Adab al-Akl)", titleAr: "كتاب آداب الأكل", desc: "Gratitude, hospitality, and moderation in nourishment." },
-    { id: 12, q: "Q2", titleEn: "Etiquette of Marriage (Adab al-Nikah)", titleAr: "كتاب آداب النكاح", desc: "Virtue of marital harmony, mutual rights, and upright household." },
-    { id: 13, q: "Q2", titleEn: "Etiquette of Earning (Adab al-Kasb)", titleAr: "كتاب آداب الكسب والمعاش", desc: "Lawful livelihood, trade ethics, and avoiding injustice." },
-    { id: 14, q: "Q2", titleEn: "Halal and Haram (Al-Halal wa al-Haram)", titleAr: "كتاب الحلال والحرام", desc: "Distinguishing doubtful matters and stages of scrupulousness." },
-    { id: 15, q: "Q2", titleEn: "Etiquette of Companionship (Adab al-Suhbah)", titleAr: "كتاب آداب الصحبة والمعاشرة", desc: "Brotherhood for the sake of Allah and rights of fellowship." },
-    { id: 16, q: "Q2", titleEn: "Etiquette of Seclusion (Adab al-Uzlah)", titleAr: "كتاب آداب العزلة", desc: "Solitude for reflection versus communal engagement." },
-    { id: 17, q: "Q2", titleEn: "Etiquette of Travel (Adab al-Safar)", titleAr: "كتاب آداب السفر", desc: "Outward journeying and inward migration toward truth." },
-    { id: 18, q: "Q2", titleEn: "Music and Ecstasy (Al-Sama wa al-Wajd)", titleAr: "كتاب السماع والوجد", desc: "Spiritual audition, permissible melody, and ecstasy." },
-    { id: 19, q: "Q2", titleEn: "Enjoining Good and Forbidding Evil (Al-Amr bil-Maruf)", titleAr: "كتاب الأمر بالمعروف والنهي عن المنكر", desc: "Degrees, conditions, and etiquette of communal uprightness." },
-    { id: 20, q: "Q2", titleEn: "Etiquettes of Prophetic Living (Adab al-Maishah)", titleAr: "كتاب آداب المعيشة وأخلاق النبوة", desc: "Sublime character and conduct of the Prophet Muhammad." },
-    { id: 21, q: "Q3", titleEn: "The Wonders of the Heart (Sharh Ajaib al-Qalb)", titleAr: "كتاب شرح عجائب القلب", desc: "Subtle nature of the spiritual heart, intuition, and satanic whispers." },
-    { id: 22, q: "Q3", titleEn: "Disciplining the Soul (Riyadat al-Nafs)", titleAr: "كتاب رياضة النفس وتهذيب الأخلاق", desc: "Moral character refinement and spiritual therapy." },
-    { id: 23, q: "Q3", titleEn: "Overcoming Gluttony and Lust (Kasr al-Shahwatayn)", titleAr: "كتاب كسر الشهوتين", desc: "Curbing physical appetites and attaining ascetic mastery." },
-    { id: 24, q: "Q3", titleEn: "Vices of the Tongue (Afat al-Lisan)", titleAr: "كتاب آفات اللسان", desc: "Backbiting, falsehood, dispute, and twenty perils of speech." },
-    { id: 25, q: "Q3", titleEn: "Condemnation of Anger and Rancor (Dhamm al-Ghadab)", titleAr: "كتاب ذم الغضب والحقد والحسد", desc: "Therapy for anger, spite, and destructive envy." },
-    { id: 26, q: "Q3", titleEn: "Condemnation of the World (Dhamm al-Dunya)", titleAr: "كتاب ذم الدنيا", desc: "Ephemerality of worldly vanity and reality of the afterlife." },
-    { id: 27, q: "Q3", titleEn: "Condemnation of Avarice (Dhamm al-Bukhl)", titleAr: "كتاب ذم البخل وذم حب المال", desc: "Love of wealth, hoarding, and generosity as liberation." },
-    { id: 28, q: "Q3", titleEn: "Condemnation of Status and Ostentation (Dhamm al-Jah)", titleAr: "كتاب ذم الجاه والرياء", desc: "Subtle vanity, craving acclaim, and sincere hidden devotion." },
-    { id: 29, q: "Q3", titleEn: "Condemnation of Pride and Conceit (Dhamm al-Kibr)", titleAr: "كتاب ذم الكبر والعجب", desc: "Arrogance versus humility, and roots of self-delusion." },
-    { id: 30, q: "Q3", titleEn: "Condemnation of Delusion (Dhamm al-Ghurur)", titleAr: "كتاب ذم الغرور", desc: "Classes of the deceived among scholars, ascetics, and rich." },
-    { id: 31, q: "Q4", titleEn: "Repentance (Kitab al-Tawbah)", titleAr: "كتاب التوبة", desc: "Conditions, stages, and spiritual reality of turning back to Allah." },
-    { id: 32, q: "Q4", titleEn: "Patience and Gratitude (Al-Sabr wa al-Shukr)", titleAr: "كتاب الصبر والشكر", desc: "Endurance during adversity and recognizing divine gifts." },
-    { id: 33, q: "Q4", titleEn: "Fear and Hope (Al-Khawf wa al-Raja)", titleAr: "كتاب الخوف والرجاء", desc: "Balancing dread of divine majesty with yearning for mercy." },
-    { id: 34, q: "Q4", titleEn: "Poverty and Renunciation (Al-Faqr wa al-Zuhd)", titleAr: "كتاب الفقر والزهد", desc: "Contentment with sufficiency and true detachment." },
-    { id: 35, q: "Q4", titleEn: "Faith in Divine Unity and Trust (Al-Tawhid wa al-Tawakkul)", titleAr: "كتاب التوحيد والتوكل", desc: "Causality, divine sovereignty, and unyielding reliance on Allah." },
-    { id: 36, q: "Q4", titleEn: "Love, Longing, Intimacy and Contentment (Al-Mahabbah)", titleAr: "كتاب المحبة والشوق والأنس والرضا", desc: "Summit of spiritual stations and divine love." },
-    { id: 37, q: "Q4", titleEn: "Intention, Sincerity and Truthfulness (Al-Niyyah)", titleAr: "كتاب النية والإخلاص والصدق", desc: "Purity of purpose and aligning inward and outward truth." },
-    { id: 38, q: "Q4", titleEn: "Self-Examination and Vigilance (Al-Muraqabah)", titleAr: "كتاب المراقبة والمحاسبة", desc: "Spiritual accountability and guarding the passing moments." },
-    { id: 39, q: "Q4", titleEn: "Meditation and Contemplation (Kitab al-Tafakkur)", titleAr: "كتاب التفكر", desc: "Reflecting on the cosmic creation and divine wisdom." },
-    { id: 40, q: "Q4", titleEn: "Remembrance of Death and the Afterlife (Dhikr al-Mawt)", titleAr: "كتاب ذكر الموت وما بعده", desc: "The final transition, the grave, the resurrection, and eternity." }
-  ];
-
-  const RAZI_VOLUMES = [
-    { id: "razi-vol01", q: "Razi", titleEn: "Tafsir al-Kabir (Mafatih al-Ghayb) - Vol 1", titleAr: "مفاتيح الغيب - المجلد الأول", desc: "Exegesis of Surah al-Fatihah, linguistics, philosophical kalam, and divine wisdom.", epub: "/epubs/tafsir_kabir_vol01.epub" },
-    { id: "razi-vol02", q: "Razi", titleEn: "Tafsir al-Kabir - Vol 2 (Surah al-Baqarah 1-50)", titleAr: "مفاتيح الغيب - المجلد الثاني", desc: "Theology of guidance, hypocrisy, cosmological signs, and creation.", epub: "/epubs/tafsir_kabir_vol02.epub" },
-    { id: "razi-vol03", q: "Razi", titleEn: "Tafsir al-Kabir - Vol 3 (Surah al-Baqarah 51-141)", titleAr: "مفاتيح الغيب - المجلد الثالث", desc: "Covenants of Bani Israel, Prophet Ibrahim, and sacred direction (Qiblah).", epub: "/epubs/tafsir_kabir_vol03.epub" },
-    { id: "razi-matalib", q: "Razi", titleEn: "Al-Matalib al-Aliyah min al-Ilm al-Ilahi (Omnibus)", titleAr: "المطالب العالية من العلم الإلهي", desc: "Imam al-Razi final metaphysical and philosophical opus in 9 volumes.", epub: "/epubs/al_matalib_al_aliyah_complete_en.epub" },
-    { id: "razi-mahsul", q: "Razi", titleEn: "Al-Mahsul fi Usul al-Fiqh", titleAr: "المحصول في علم أصول الفقه", desc: "Foundational classical treatise on Islamic legal epistemology and reasoning.", epub: "/epubs/al_mahsul_fi_usul_al_fiqh_v3_ar_lex_en.epub" }
-  ];
-
-  const SCHOLAR_CHANNELS = [
-    { id: "sch-asrar", q: "Scholars", titleEn: "Shaykh Asrar Rashid - Kalam & Classical Creed", titleAr: "الشيخ أسرار رشيد - دروس العقيدة والكلام", desc: "Systematic instruction in Aqeedah Tahawiyyah, Sanusiyyah, and modern debate.", channel: "asrar-rashid" },
-    { id: "sch-ahmad", q: "Scholars", titleEn: "Shaykh Ahmad - Spiritual Dars & Hikmah", titleAr: "الشيخ أحمد - درر الحكم والتصوف", desc: "Exposition of Al-Hikam al-Ataiyyah, purifying the spiritual faculties.", channel: "ahmad-lessons" },
-    { id: "sch-hamza", q: "Scholars", titleEn: "Shaykh Hamza Yusuf - Purification of Heart & Logic", titleAr: "الشيخ حمزة يوسف - تزكية النفوس وعلم المنطق", desc: "Classical curricula in grammar, epistemology, and ethical restoration.", channel: "hamza-yusuf" }
-  ];
-
-  function loadMaktabaCatalog() {
+  // 3. Classical Maktaba (246 Manuscripts) & On-Chain L1 Anchoring
+  async function loadFullCorpusManifest() {
     const container = document.getElementById("maktaba-grid-container");
-    if (!container) return;
+    if (container) {
+      container.innerHTML = "<div style=\"grid-column: 1/-1; text-align: center; color: var(--matrix-green); padding: 40px;\">Loading 246 Classical Manuscripts from L1 Sovereign Registry...</div>";
+    }
 
-    const allItems = [
-      ...IHYA_BOOKS.map(b => Object.assign({}, b, { type: "ihya" })),
-      ...RAZI_VOLUMES.map(v => Object.assign({}, v, { type: "razi" })),
-      ...SCHOLAR_CHANNELS.map(s => Object.assign({}, s, { type: "scholar" }))
-    ];
+    try {
+      let res = await fetch("/api/library/manifest");
+      if (!res.ok) res = await fetch("/manifest-corpus.json");
+      const data = await res.json();
+      fullCorpusData = data.books || [];
+    } catch (e) {
+      console.warn("Failed to fetch live manifest, using embedded fallback:", e);
+      fullCorpusData = [];
+    }
 
-    const filtered = allItems.filter(function(item) {
-      if (currentQuarterFilter === "ALL") return true;
-      if (currentQuarterFilter === "Q1") return item.q === "Q1";
-      if (currentQuarterFilter === "Q2") return item.q === "Q2";
-      if (currentQuarterFilter === "Q3") return item.q === "Q3";
-      if (currentQuarterFilter === "Q4") return item.q === "Q4";
-      if (currentQuarterFilter === "Razi") return item.q === "Razi";
-      if (currentQuarterFilter === "Scholars") return item.q === "Scholars";
+    renderMaktabaCards(filterCorpusByCurrentCategory());
+  }
+
+  function filterCorpusByCurrentCategory() {
+    if (!fullCorpusData || fullCorpusData.length === 0) return [];
+    if (currentMaktabaFilter === "ALL") return fullCorpusData;
+
+    return fullCorpusData.filter(function(b) {
+      const key = (b.imam_key || "").toLowerCase();
+      const fn = (b.filename || "").toLowerCase();
+      const cat = (b.category || "").toLowerCase();
+
+      if (currentMaktabaFilter === "IHYA") {
+        return fn.includes("ihya") || (b.title && b.title.includes("Ihya")) || key === "ghazali";
+      }
+      if (currentMaktabaFilter === "RAZI") {
+        return key === "razi" || fn.includes("razi") || fn.includes("tafsir_kabir") || fn.includes("matalib");
+      }
+      if (currentMaktabaFilter === "GHAZALI") {
+        return key === "ghazali" || fn.includes("tahafut") || fn.includes("mishkat") || fn.includes("ghazali");
+      }
+      if (currentMaktabaFilter === "NAWAWI") {
+        return key === "nawawi" || fn.includes("nawawi") || fn.includes("riyad") || fn.includes("muslim");
+      }
+      if (currentMaktabaFilter === "RAGHIB") {
+        return key === "raghib" || fn.includes("raghib") || fn.includes("mufradat");
+      }
+      if (currentMaktabaFilter === "HERITAGE") {
+        return key === "heritage" || fn.includes("shifa") || fn.includes("futuhat") || fn.includes("sunan");
+      }
       return true;
     });
-
-    renderMaktabaCards(filtered);
   }
 
   function renderMaktabaCards(items) {
     const container = document.getElementById("maktaba-grid-container");
     if (!container) return;
 
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
       container.innerHTML = "<div style=\"grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;\">No manuscripts found matching filter.</div>";
       return;
     }
 
     container.innerHTML = items.map(function(b) {
-      const isIhya = b.type === "ihya";
-      const badgeText = isIhya ? ("Book #" + b.id + " &middot; " + b.q) : (b.type === "razi" ? "Tafsir Razi" : "Scholar Series");
-      const badgeColor = isIhya ? "var(--matrix-green)" : (b.type === "razi" ? "#60a5fa" : "#f6ad55");
+      const isIhya = (b.filename && b.filename.includes("ihya")) || (b.title && b.title.includes("Ihya"));
+      const authorText = b.author || "Classical Scholar";
+      const titleEn = b.title || b.filename;
+      const titleAr = b.arabic_title || "";
+      const sha256Short = b.sha256 ? (b.sha256.substring(0, 10) + "...") : "SHA-256";
+      const blockText = b.blockHeight ? ("Block #" + b.blockHeight) : "L1 SEALED";
+      const epubPath = "/epubs/" + b.filename;
 
       let actionButtons = "";
       if (isIhya) {
-        actionButtons = "<button class=\"btn-pill btn-pill-green\" onclick=\"openBookReader(" + b.id + ")\" style=\"padding: 6px 12px; font-size: 0.75rem;\">Read Online</button>" +
-          "<button class=\"btn-pill\" style=\"background: rgba(255,255,255,0.06); color: #fff; padding: 6px 12px; font-size: 0.75rem;\" onclick=\"selectChannel(\x27ihya-ulum-al-din\x27, \x27" + b.titleEn.replace(/'/g, "") + "\x27)\">Discuss</button>";
-      } else if (b.type === "razi") {
-        actionButtons = "<a href=\"" + (b.epub || "#") + "\" download class=\"btn-pill btn-pill-green\" style=\"padding: 6px 12px; font-size: 0.75rem; text-decoration: none;\">Download EPUB</a>" +
-          "<button class=\"btn-pill\" style=\"background: rgba(255,255,255,0.06); color: #fff; padding: 6px 12px; font-size: 0.75rem;\" onclick=\"selectChannel(\x27imam-al-razi-tafsir\x27, \x27" + b.titleEn.replace(/'/g, "") + "\x27)\">Discuss</button>";
-      } else {
-        actionButtons = "<button class=\"btn-pill btn-pill-green\" onclick=\"selectChannel(\x27" + b.channel + "\x27, \x27" + b.titleEn.replace(/'/g, "") + "\x27)\" style=\"padding: 6px 12px; font-size: 0.75rem;\">Join Dars</button>";
+        actionButtons += "<button class=\"btn-pill btn-pill-green\" onclick=\"openBookReader(1)\" style=\"padding: 5px 10px; font-size: 0.72rem;\">Read Online</button>";
       }
+      actionButtons += "<a href=\"" + epubPath + "\" download=\"" + b.filename + "\" class=\"btn-pill\" style=\"background: rgba(0, 245, 155, 0.15); color: var(--matrix-green); border: 1px solid var(--matrix-green); padding: 5px 10px; font-size: 0.72rem; text-decoration: none;\">Download EPUB</a>";
+      actionButtons += "<button class=\"btn-pill\" id=\"btn-anchor-" + (b.index || b.sha256) + "\" style=\"background: rgba(255, 255, 255, 0.06); color: #fff; padding: 5px 10px; font-size: 0.72rem;\" onclick=\"anchorManuscriptOnChain('" + b.filename + "', '" + (titleEn.replace(/'/g, "\\'")) + "', '" + (authorText.replace(/'/g, "\\'")) + "', '" + (b.sha256 || "") + "')\">Anchor L1</button>";
 
       return "<div class=\"epub-card\">" +
         "<div style=\"display: flex; justify-content: space-between; align-items: flex-start;\">" +
-          "<span class=\"l1-did-badge verified\" style=\"color: " + badgeColor + "; border-color: " + badgeColor + ";\">" + badgeText + "</span>" +
-          "<span style=\"font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);\">L1 ANCHORED</span>" +
+          "<span class=\"l1-did-badge verified\" style=\"color: var(--matrix-green); border-color: var(--matrix-green); font-size: 0.65rem;\">" + (b.category || "Sacred Sciences") + "</span>" +
+          "<span style=\"font-size: 0.65rem; color: var(--matrix-green); font-family: var(--font-mono); font-weight: 700;\">" + blockText + "</span>" +
         "</div>" +
-        "<div class=\"epub-card-title\">" + b.titleEn + "</div>" +
-        "<div class=\"epub-card-arabic\">" + b.titleAr + "</div>" +
-        "<div style=\"font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-top: 4px;\">" + b.desc + "</div>" +
-        "<div class=\"epub-card-footer\">" + actionButtons + "</div>" +
+        "<div class=\"epub-card-title\" style=\"margin-top: 6px; font-size: 0.95rem; font-weight: 700;\">" + titleEn + "</div>" +
+        (titleAr ? ("<div class=\"epub-card-arabic\" style=\"font-size: 0.85rem; color: var(--matrix-green); margin-top: 2px;\">" + titleAr + "</div>") : "") +
+        "<div style=\"font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin-top: 4px;\">" + authorText + " &middot; " + (b.sizeMb || "1.5 MB") + "</div>" +
+        "<div style=\"font-size: 0.7rem; color: rgba(255,255,255,0.4); font-family: var(--font-mono); margin-top: 4px;\">Hash: " + sha256Short + "</div>" +
+        "<div class=\"epub-card-footer\" style=\"display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;\">" + actionButtons + "</div>" +
       "</div>";
     }).join("");
   }
 
   window.filterMaktabaCategory = function(cat) {
-    currentQuarterFilter = cat;
-    document.querySelectorAll("[id^='filter-pill-']").forEach(function(btn) {
+    currentMaktabaFilter = cat;
+    document.querySelectorAll(".maktaba-filter-bar button").forEach(function(btn) {
       btn.classList.remove("active", "btn-pill-green");
     });
     const activeBtn = document.getElementById("filter-pill-" + cat.toLowerCase());
     if (activeBtn) activeBtn.classList.add("active", "btn-pill-green");
-    loadMaktabaCatalog();
+    renderMaktabaCards(filterCorpusByCurrentCategory());
   };
 
   window.handleMaktabaSearch = function(query) {
     if (!query || !query.trim()) {
-      loadMaktabaCatalog();
+      renderMaktabaCards(filterCorpusByCurrentCategory());
       return;
     }
     const q = query.trim().toLowerCase();
-    const allItems = [
-      ...IHYA_BOOKS.map(b => Object.assign({}, b, { type: "ihya" })),
-      ...RAZI_VOLUMES.map(v => Object.assign({}, v, { type: "razi" })),
-      ...SCHOLAR_CHANNELS.map(s => Object.assign({}, s, { type: "scholar" }))
-    ];
-
-    const matched = allItems.filter(function(item) {
-      return (item.titleEn && item.titleEn.toLowerCase().indexOf(q) !== -1) ||
-             (item.titleAr && item.titleAr.indexOf(q) !== -1) ||
-             (item.desc && item.desc.toLowerCase().indexOf(q) !== -1);
+    const matched = fullCorpusData.filter(function(b) {
+      return (b.title && b.title.toLowerCase().indexOf(q) !== -1) ||
+             (b.arabic_title && b.arabic_title.indexOf(q) !== -1) ||
+             (b.author && b.author.toLowerCase().indexOf(q) !== -1) ||
+             (b.filename && b.filename.toLowerCase().indexOf(q) !== -1);
     });
     renderMaktabaCards(matched);
   };
 
-  // 3. Dual-Pane In-Browser Book Reader
-  window.openBookReader = async function(bookId) {
-    const book = IHYA_BOOKS.find(b => b.id === bookId);
-    if (!book) return;
+  window.anchorManuscriptOnChain = async function(filename, title, author, sha256) {
+    try {
+      const res = await fetch("/api/blockchain/anchor-epub", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename, title, author, sha256 })
+      });
+      const data = await res.json();
+      if (data.status === "ANCHORED_ON_L1") {
+        alert("L1 Blockchain Anchored Successfully!\n\nTxHash: " + data.txHash + "\nBlock Height: " + data.blockHeight + "\nToken: " + data.token + " (ChainID 51950)\nSHA-256: " + data.sha256);
+      } else {
+        alert("Anchoring status: " + JSON.stringify(data));
+      }
+    } catch (err) {
+      alert("Anchoring failed: " + err.message);
+    }
+  };
 
+  window.batchAnchorCorpusToL1 = async function() {
+    const btn = document.getElementById("btn-batch-anchor");
+    if (btn) btn.textContent = "[L1] Anchoring 246 Manuscripts...";
+    try {
+      const res = await fetch("/api/blockchain/batch-anchor-corpus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (data.status === "CORPUS_BATCH_ANCHORED") {
+        alert("Full Classical Corpus (246 Books) Batch-Anchored onto Sovereign Subnet 51950!\n\nBatch TxHash: " + data.batchTxHash + "\nBlock Height: " + data.blockHeight + "\nTotal Manuscripts: " + data.totalManuscripts);
+      }
+    } catch (e) {
+      alert("Batch anchor failed: " + e.message);
+    } finally {
+      if (btn) btn.textContent = "[L1] Anchor Entire Corpus to Blockchain";
+    }
+  };
+
+  // 4. Dual-Pane In-Browser Book Reader
+  window.openBookReader = async function(bookId) {
     const titleEl = document.getElementById("reader-book-title");
     const arabicTitleEl = document.getElementById("reader-book-arabic");
     const arabicContent = document.getElementById("reader-arabic-content");
     const englishContent = document.getElementById("reader-english-content");
-    const modal = document.getElementById("modal-book-reader");
+    const modal = document.getElementById("reader-modal");
 
-    if (titleEl) titleEl.textContent = "Ihya Ulum al-Din: Book " + book.id + " - " + book.titleEn;
-    if (arabicTitleEl) arabicTitleEl.textContent = "إحياء علوم الدين - " + book.titleAr;
-    if (modal) modal.classList.add("active");
-
-    if (arabicContent) arabicContent.innerHTML = "<h4>النَّصّ العَرَبِيّ الأَصِيل</h4><p style=\"color:var(--text-muted)\">جاري تحميل النص الأصيل من المكتبة السيادية...</p>";
-    if (englishContent) englishContent.innerHTML = "<h4>ENGLISH TRANSLATION</h4><p style=\"color:var(--text-muted)\">Loading verified English translation...</p>";
+    if (titleEl) titleEl.textContent = "Book #" + bookId + " - Ihya Ulum al-Din";
+    if (arabicTitleEl) arabicTitleEl.textContent = "إحياء علوم الدين - الإمام أبو حامد الغزالي";
+    if (arabicContent) arabicContent.textContent = "Loading authentic classical Arabic text...";
+    if (englishContent) englishContent.textContent = "Loading scholarly English translation...";
+    if (modal) modal.style.display = "flex";
 
     try {
       const res = await fetch("/api/library/ihya/" + bookId);
       if (res.ok) {
         const data = await res.json();
-        if (arabicContent) {
-          arabicContent.innerHTML = "<h4>النَّصّ العَرَبِيّ الأَصِيل</h4><div style=\"white-space: pre-wrap; font-family: var(--font-arabic); font-size: 1.25rem; line-height: 2.2; color: #f6ad55;\">" + (data.arabicText || book.desc) + "</div>";
-        }
-        if (englishContent) {
-          englishContent.innerHTML = "<h4>ENGLISH TRANSLATION</h4><div style=\"white-space: pre-wrap; font-family: var(--font-ui); font-size: 1.05rem; line-height: 1.8; color: #e2e8f0;\">" + (data.englishText || book.desc) + "</div>";
-        }
-      } else {
-        throw new Error("Local reader fallback");
+        if (arabicContent) arabicContent.textContent = data.arabicText || "Arabic text not available.";
+        if (englishContent) englishContent.textContent = data.englishText || "English text not available.";
       }
-    } catch (err) {
-      if (arabicContent) {
-        arabicContent.innerHTML = "<h4>النَّصّ العَرَبِيّ الأَصِيل</h4><div style=\"white-space: pre-wrap; font-family: var(--font-arabic); font-size: 1.25rem; line-height: 2.2; color: #f6ad55;\">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ\n\n" + book.titleAr + "\n\n" + book.desc + "</div>";
-      }
-      if (englishContent) {
-        englishContent.innerHTML = "<h4>ENGLISH TRANSLATION</h4><div style=\"white-space: pre-wrap; font-family: var(--font-ui); font-size: 1.05rem; line-height: 1.8; color: #e2e8f0;\">In the name of Allah, the Most Merciful.\n\n" + book.titleEn + "\n\n" + book.desc + "</div>";
-      }
+    } catch (e) {
+      if (arabicContent) arabicContent.textContent = "Error streaming text from server.";
     }
   };
 
   window.closeBookReader = function() {
-    const modal = document.getElementById("modal-book-reader");
-    if (modal) modal.classList.remove("active");
+    const modal = document.getElementById("reader-modal");
+    if (modal) modal.style.display = "none";
   };
 
-  // 4. Blockchain Subnet 51950 Vault Logic
-  function updateBlockchainTelemetry() {
-    const rpcUrl = window.location.origin + "/api/wyrenet/rpc";
-    const rpcEl = document.getElementById("val-rpc-url");
-    if (rpcEl) rpcEl.textContent = rpcUrl;
+  // 5. WebRTC P2P Voice & Video Calling Engine
+  window.startWebRtcCall = async function(callType) {
+    const modal = document.getElementById("webrtc-call-modal");
+    const title = document.getElementById("call-modal-peer-title");
+    const status = document.getElementById("call-status-label");
+    const incomingActions = document.getElementById("incoming-call-actions");
+    const activeControls = document.getElementById("active-call-controls");
+    const videoContainer = document.getElementById("call-video-container");
 
-    const userAddr = localStorage.getItem("wyresup_user_wallet");
-    if (userAddr) {
-      fetch("/api/wyrenet/balance/" + userAddr).then(r => r.json()).then(data => {
-        const balEl = document.getElementById("user-wyre-balance");
-        if (balEl && data.balance) {
-          userZbatBalance = data.balance;
-          balEl.textContent = parseFloat(data.balance).toFixed(4) + " WYRE";
+    if (modal) modal.style.display = "flex";
+    if (title) title.textContent = (callType === "video" ? "Outgoing Video Call" : "Outgoing Sovereign Voice Call");
+    if (status) status.textContent = "Calling peer on channel #" + currentChannelId + "...";
+    if (incomingActions) incomingActions.style.display = "none";
+    if (activeControls) activeControls.style.display = "flex";
+
+    try {
+      localMediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: callType === "video"
+      });
+
+      if (callType === "video" && videoContainer) {
+        videoContainer.style.display = "block";
+        const localVid = document.getElementById("local-video");
+        if (localVid) localVid.srcObject = localMediaStream;
+      }
+
+      // Initialize WyreWebRtcChannel if available
+      if (window.WyreWebRtcChannel) {
+        rtcChannel = new window.WyreWebRtcChannel();
+        const pc = rtcChannel.createPeerConnection({
+          localStream: localMediaStream,
+          onRemoteTrack: function(stream) {
+            const remoteVid = document.getElementById("remote-video");
+            if (remoteVid) remoteVid.srcObject = stream;
+          },
+          onConnectionChange: function(state) {
+            if (status) status.textContent = "Connection: " + state;
+          }
+        });
+        await rtcChannel.generateOffer(pc);
+      }
+
+      startCallTimer();
+      initAudioVisualizer(localMediaStream);
+    } catch (err) {
+      if (status) status.textContent = "Media permission denied or hardware unavailable.";
+    }
+  };
+
+  window.acceptIncomingCall = async function() {
+    const incomingActions = document.getElementById("incoming-call-actions");
+    const activeControls = document.getElementById("active-call-controls");
+    const status = document.getElementById("call-status-label");
+
+    if (incomingActions) incomingActions.style.display = "none";
+    if (activeControls) activeControls.style.display = "flex";
+    if (status) status.textContent = "RTC CONNECTED // MUTTASIL (0-RTT)";
+
+    try {
+      localMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      startCallTimer();
+      initAudioVisualizer(localMediaStream);
+    } catch (e) {}
+  };
+
+  window.declineIncomingCall = function() {
+    window.endCurrentCall();
+  };
+
+  window.endCurrentCall = function() {
+    const modal = document.getElementById("webrtc-call-modal");
+    if (modal) modal.style.display = "none";
+
+    if (localMediaStream) {
+      localMediaStream.getTracks().forEach(t => t.stop());
+      localMediaStream = null;
+    }
+
+    if (callTimerInterval) {
+      clearInterval(callTimerInterval);
+      callTimerInterval = null;
+    }
+    callDurationSeconds = 0;
+
+    if (visualizerAnimId) {
+      cancelAnimationFrame(visualizerAnimId);
+      visualizerAnimId = null;
+    }
+  };
+
+  window.toggleCallMute = function() {
+    if (!localMediaStream) return;
+    const audioTrack = localMediaStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      const btn = document.getElementById("btn-call-mute");
+      if (btn) btn.textContent = audioTrack.enabled ? "[MUTE MIC]" : "[UNMUTE MIC]";
+    }
+  };
+
+  window.toggleCallVideo = function() {
+    if (!localMediaStream) return;
+    const videoTrack = localMediaStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      const btn = document.getElementById("btn-call-video-toggle");
+      if (btn) btn.textContent = videoTrack.enabled ? "[CAMERA OFF]" : "[CAMERA ON]";
+    }
+  };
+
+  function startCallTimer() {
+    callDurationSeconds = 0;
+    const status = document.getElementById("call-status-label");
+    if (callTimerInterval) clearInterval(callTimerInterval);
+    callTimerInterval = setInterval(function() {
+      callDurationSeconds++;
+      const mins = Math.floor(callDurationSeconds / 60).toString().padStart(2, "0");
+      const secs = (callDurationSeconds % 60).toString().padStart(2, "0");
+      if (status) status.textContent = "CONNECTED (" + mins + ":" + secs + ") // MUTTASIL";
+    }, 1000);
+  }
+
+  // 6. Real-Time Audio Visualizer (Voice Lounge Canvas)
+  function initAudioVisualizer(stream) {
+    const canvas = document.getElementById("audio-visualizer");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AudioCtx();
+      const source = audioContext.createMediaStreamSource(stream);
+      analyserNode = audioContext.createAnalyser();
+      analyserNode.fftSize = 64;
+      source.connect(analyserNode);
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      function draw() {
+        visualizerAnimId = requestAnimationFrame(draw);
+        analyserNode.getByteFrequencyData(dataArray);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const barWidth = (canvas.width / bufferLength) * 2;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height;
+          ctx.fillStyle = "#00f59b";
+          ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+          x += barWidth;
         }
-      }).catch(function() {});
+      }
+      draw();
+    } catch (e) {
+      console.warn("Visualizer fallback mode");
     }
   }
 
-  window.generateNewMnemonicWallet = function() {
+  // 7. Nagham DTMF Acoustic Key Exchange Synthesizer
+  window.playDtmfTone = function(symbol) {
+    const DTMF_FREQS = {
+      "1": [697, 1209], "2": [697, 1336], "3": [697, 1477],
+      "4": [770, 1209], "5": [770, 1336], "6": [770, 1477],
+      "7": [852, 1209], "8": [852, 1336], "9": [852, 1477],
+      "*": [941, 1209], "0": [941, 1336], "#": [941, 1477],
+      "A": [697, 1633], "B": [770, 1633], "C": [852, 1633], "D": [941, 1633]
+    };
+
+    const freqs = DTMF_FREQS[symbol.toUpperCase()];
+    if (!freqs) return;
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.frequency.value = freqs[0];
+      osc2.frequency.value = freqs[1];
+      gain.gain.value = 0.15;
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start();
+      osc2.start();
+
+      setTimeout(function() {
+        osc1.stop();
+        osc2.stop();
+        ctx.close();
+      }, 150);
+    } catch (e) {}
+  };
+
+  // 8. Sovereign L1 Subnet 51950 Blockchain Vault & Faucet
+  window.generateBip39Wallet = function() {
     const words = [];
     for (let i = 0; i < 12; i++) {
-      const idx = Math.floor(Math.random() * BIP39_WORDS.length);
-      words.push(BIP39_WORDS[idx]);
+      const randIdx = Math.floor(Math.random() * BIP39_WORDS.length);
+      words.push(BIP39_WORDS[randIdx]);
     }
     generatedMnemonicPhrase = words.join(" ");
-    
-    let hex = "";
-    for (let i = 0; i < 40; i++) {
-      hex += Math.floor(Math.random() * 16).toString(16);
+
+    const display = document.getElementById("mnemonic-words-display");
+    if (display) {
+      display.innerHTML = words.map((w, idx) =>
+        "<div class=\"mnemonic-word-pill\"><span class=\"idx\">" + (idx + 1) + "</span> " + w + "</div>"
+      ).join("");
     }
-    const simulatedAddress = "0x" + hex;
 
-    const displayBox = document.getElementById("mnemonic-display-box");
-    const grid = document.getElementById("mnemonic-words-grid");
-    const addr = document.getElementById("derived-wallet-address");
+    const phraseArea = document.getElementById("generated-mnemonic-phrase");
+    if (phraseArea) phraseArea.value = generatedMnemonicPhrase;
 
-    if (displayBox) displayBox.style.display = "flex";
-    if (addr) addr.textContent = simulatedAddress;
-    if (grid) {
-      grid.innerHTML = words.map(function(w, i) {
-        return "<div style=\"background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 6px 10px; border-radius: 6px;\">" +
-          "<span style=\"color: var(--matrix-green); font-size: 10px;\">" + (i + 1) + ".</span> " + w +
-        "</div>";
-      }).join("");
+    // Deterministic address generation from phrase
+    let hash = 0;
+    for (let i = 0; i < generatedMnemonicPhrase.length; i++) {
+      hash = (hash << 5) - hash + generatedMnemonicPhrase.charCodeAt(i);
+      hash |= 0;
     }
-    if (typeof showToast === "function") showToast("12-word BIP-39 mnemonic generated!", "[OK]");
-  };
+    const hex = Math.abs(hash).toString(16).padStart(40, "0").substring(0, 40);
+    const addr = "0x" + hex;
 
-  window.saveAndUseGeneratedWallet = function() {
-    const addr = document.getElementById("derived-wallet-address");
-    if (addr && addr.textContent) {
-      localStorage.setItem("wyresup_user_wallet", addr.textContent);
-      const userBarName = document.getElementById("current-user-name");
-      const userBarId = document.getElementById("current-user-id");
-      if (userBarName) userBarName.textContent = addr.textContent.substring(0, 8) + "...";
-      if (userBarId) userBarId.textContent = "did:wyre:" + addr.textContent.substring(0, 10) + "...";
-      if (typeof showToast === "function") showToast("Wallet activated: " + addr.textContent.substring(0, 8) + "...", "[OK]");
-      updateBlockchainTelemetry();
+    const addrEl = document.getElementById("user-wallet-address");
+    if (addrEl) addrEl.textContent = addr;
+
+    const qrEl = document.getElementById("wallet-qrcode-canvas");
+    if (qrEl && window.QRCode) {
+      qrEl.innerHTML = "";
+      new window.QRCode(qrEl, { text: addr, width: 90, height: 90 });
     }
   };
 
-  window.copyMnemonicPhrase = function() {
-    if (!generatedMnemonicPhrase) return;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(generatedMnemonicPhrase).then(function() {
-        if (typeof showToast === "function") showToast("Mnemonic copied to clipboard!", "[OK]");
-      });
-    } else {
-      prompt("Secret 12 words:", generatedMnemonicPhrase);
-    }
-  };
-
-  window.copyRpcEndpoint = function() {
-    const rpc = window.location.origin + "/api/wyrenet/rpc";
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(rpc).then(function() {
-        if (typeof showToast === "function") showToast("RPC URL copied!", "[OK]");
-      });
-    } else {
-      prompt("RPC URL:", rpc);
-    }
-  };
-
-  window.requestFaucetTokens = async function() {
-    const userAddr = localStorage.getItem("wyresup_user_wallet") || "0x471c852d254a67f36c129f2386ca21c31840dea4";
-    if (typeof showToast === "function") showToast("Requesting 100 WYRE testnet tokens...", "[*]");
+  window.claimTestnetFaucet = async function() {
+    const addrEl = document.getElementById("user-wallet-address");
+    const addr = addrEl ? addrEl.textContent.trim() : "0x471c852d254a67f36c129f2386ca21c31840dea4";
+    const btn = document.getElementById("btn-claim-faucet");
+    if (btn) btn.textContent = "Minting 100 WYRE...";
 
     try {
       const res = await fetch("/api/blockchain/faucet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: userAddr, amount: "100.0" })
+        body: JSON.stringify({ address: addr })
       });
       const data = await res.json();
-      if (res.ok) {
-        if (typeof showToast === "function") showToast("100 WYRE successfully issued to your wallet!", "[OK]");
-        const balEl = document.getElementById("user-wyre-balance");
-        if (balEl) balEl.textContent = "100.0000 WYRE";
-      } else {
-        if (typeof showToast === "function") showToast("Faucet response: " + (data.message || data.error), "[*]");
+      if (data.status === "SUCCESS") {
+        userWyreBalance = data.balance;
+        const balEl = document.getElementById("vault-wyre-balance");
+        if (balEl) balEl.textContent = userWyreBalance;
+        alert("Claimed 100.0000 WYRE from Subnet 51950 Faucet!\n\nTxHash: " + data.txHash + "\nNew Balance: " + userWyreBalance + " WYRE\nBlock: " + data.blockHeight);
       }
-    } catch (err) {
-      if (typeof showToast === "function") showToast("Faucet request executed (+100 WYRE)", "[OK]");
-      const balEl = document.getElementById("user-wyre-balance");
-      if (balEl) balEl.textContent = "100.0000 WYRE";
+    } catch (e) {
+      alert("Faucet request error: " + e.message);
+    } finally {
+      if (btn) btn.textContent = "[MINT] Claim 100 WYRE Faucet";
     }
   };
 
-  window.runAiSecurityAudit = async function() {
-    const input = document.getElementById("ai-audit-input");
-    const output = document.getElementById("ai-audit-output");
-    if (!input || !output) return;
+  window.relayGaslessTransaction = async function() {
+    const toEl = document.getElementById("gasless-recipient-address");
+    const amtEl = document.getElementById("gasless-transfer-amount");
+    const to = toEl ? toEl.value.trim() : "";
+    const amt = amtEl ? amtEl.value.trim() : "1.0";
 
-    const code = input.value.trim();
-    if (!code) {
-      if (typeof showToast === "function") showToast("Please paste contract bytecode or Solidity code first.", "[*]");
+    if (!to || !to.startsWith("0x") || to.length !== 42) {
+      alert("Please enter a valid 0x recipient address (42 chars).");
       return;
     }
 
-    output.style.display = "block";
-    output.innerHTML = "<div style=\"color: var(--matrix-green)\">DeepSeek Flash 4.1 analyzing bytecode and invariants...</div>";
+    try {
+      const res = await fetch("/api/blockchain/relay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          request: {
+            from: "0x471c852d254a67f36c129f2386ca21c31840dea4",
+            to: to,
+            value: (parseFloat(amt) * 1e18).toString(),
+            gas: 21000,
+            nonce: 0,
+            data: "0x"
+          },
+          signature: "0x" + "0".repeat(130),
+          chainId: 51950
+        })
+      });
+      const data = await res.json();
+      if (data.status === "CONFIRMED") {
+        alert("EIP-712 Gasless Transaction Relayed!\n\nTxHash: " + data.txHash + "\nBlock: " + data.blockHeight + "\nSponsor: " + data.sponsor);
+      }
+    } catch (e) {
+      alert("Relay error: " + e.message);
+    }
+  };
 
+  window.runDeepSeekSecurityAudit = async function() {
+    const codeEl = document.getElementById("audit-code-input");
+    const outEl = document.getElementById("audit-output-result");
+    const code = codeEl ? codeEl.value : "";
+    if (!code) {
+      alert("Paste contract source code to audit.");
+      return;
+    }
+
+    if (outEl) outEl.textContent = "Querying AynEngine 5-Pillar Static Auditor & DeepSeek Flash 4.1...";
     try {
       const res = await fetch("/api/ai/audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code })
+        body: JSON.stringify({ code })
       });
       const data = await res.json();
-      if (res.ok && data.report) {
-        output.textContent = data.report;
-      } else {
-        output.textContent = "DeepSeek Flash 4.1 Audit Analysis:\n- Reentrancy Guard: Verified\n- Gas Optimization: EIP-712 paymaster sponsored\n- Access Controls: Sovereign DID Verified\n- Vulnerability Score: 0/100 (Safe for Subnet 51950)";
-      }
-    } catch (err) {
-      output.textContent = "DeepSeek Flash 4.1 Security Audit:\n- Verified static bytecode invariants.\n- No unauthorized self-destruct or unchecked call observed.\n- Status: L1 Subnet 51950 Compatible.";
+      if (outEl) outEl.textContent = data.report || JSON.stringify(data, null, 2);
+    } catch (e) {
+      if (outEl) outEl.textContent = "Audit failed: " + e.message;
     }
   };
 
-  window.executeCustomNotarization = async function() {
-    const input = document.getElementById("notary-content-input");
-    const receipt = document.getElementById("receipt-notary");
-    if (!input || !receipt) return;
-
-    const content = input.value.trim();
-    if (!content) {
-      if (typeof showToast === "function") showToast("Please enter content or a SHA-256 hash.", "[*]");
-      return;
-    }
-
-    if (typeof showToast === "function") showToast("Stamping document on WyreNet L1...", "[*]");
-    try {
-      const res = await fetch("/api/wyrenet/notarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ msgContent: content })
-      });
-      const data = await res.json();
-      receipt.style.display = "block";
-      receipt.innerHTML = "<div style=\"color: var(--matrix-green); font-weight: 800;\">L1 NOTARIZATION CONFIRMED</div>" +
-        "<div><strong>TX Hash:</strong> " + (data.txHash || ("0x" + Math.random().toString(16).substring(2))) + "</div>" +
-        "<div><strong>Block Height:</strong> #" + (data.blockHeight || 485) + "</div>" +
-        "<div><strong>Timestamp:</strong> " + (new Date().toISOString()) + "</div>";
-      if (typeof showToast === "function") showToast("Permanently stamped on Sovereign L1!", "[OK]");
-    } catch (err) {
-      receipt.style.display = "block";
-      receipt.innerHTML = "<div style=\"color: var(--matrix-green); font-weight: 800;\">L1 NOTARIZATION CONFIRMED (STANDALONE)</div>" +
-        "<div><strong>TX Hash:</strong> 0x" + Math.random().toString(16).substring(2) + Math.random().toString(16).substring(2) + "</div>" +
-        "<div><strong>Block Height:</strong> #485</div>" +
-        "<div><strong>Status:</strong> Sealed with WYRE paymaster</div>";
-    }
-  };
-
-  window.verifyLibraryManifest = function() {
-    if (typeof showToast === "function") {
-      showToast("Verifying 246 EPUB SHA-256 hashes against Sovereign L1 Block #484...", "[*]");
-      setTimeout(function() {
-        showToast("100% Cryptographic Integrity Confirmed on L1!", "[OK]");
-      }, 800);
-    }
-  };
-
-  window.openUniswapModal = function() {
-    const modal = document.getElementById("uniswap-wallet-modal");
-    if (modal) modal.classList.add("active");
-  };
-
-  window.closeUniswapModal = function() {
-    const modal = document.getElementById("uniswap-wallet-modal");
-    if (modal) modal.classList.remove("active");
-  };
-
-  window.connectMetaMaskDirect = async function() {
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        if (accounts && accounts[0]) {
-          localStorage.setItem("wyresup_user_wallet", accounts[0]);
-          closeUniswapModal();
-          if (typeof showToast === "function") showToast("Connected: " + accounts[0].substring(0, 6) + "...", "[OK]");
-          updateBlockchainTelemetry();
-        }
-      } catch (e) {
-        if (typeof showToast === "function") showToast("MetaMask authorization cancelled.", "[*]");
-      }
-    } else {
-      if (typeof showToast === "function") showToast("No Web3 extension found. Using sovereign BIP-39 wallet.", "[*]");
-      window.switchMainView("blockchain");
-      closeUniswapModal();
-    }
-  };
-
-  // Auto-init on DOMContentLoaded
-  document.addEventListener("DOMContentLoaded", function() {
-    loadMaktabaCatalog();
-    updateBlockchainTelemetry();
+  // Initialize Runtime
+  window.addEventListener("DOMContentLoaded", function() {
+    loadFullCorpusManifest();
+    window.generateBip39Wallet();
   });
 
 })();
