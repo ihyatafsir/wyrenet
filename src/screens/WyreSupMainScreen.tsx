@@ -23,6 +23,7 @@ import {
   Dimensions,
   Platform,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -192,6 +193,13 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   },
 ];
 
+const ONLINE_PEERS = [
+  { author: "omar", fingerprint: "omar@3f6753c1" },
+  { author: "enver", fingerprint: "enver@d68723c4" },
+  { author: "salman", fingerprint: "salman@99a532df" },
+  { author: "ibn-manzur", fingerprint: "ibn-manzur@lisan" },
+];
+
 export default function WyreSupMainScreen() {
   const navigation = useNavigation<any>();
   const [currentChannel, setCurrentChannel] = useState<MeshChannel>(CHANNELS[0]);
@@ -203,6 +211,109 @@ export default function WyreSupMainScreen() {
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Peer Profile & Calling States
+  const [selectedPeer, setSelectedPeer] = useState<{
+    author: string;
+    fingerprint: string;
+    badges: CryptographicBadge[];
+    lastMessage?: string;
+  } | null>(null);
+  const [peerModalVisible, setPeerModalVisible] = useState(false);
+
+  // Video Call HUD Modal State
+  const [videoCallVisible, setVideoCallVisible] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isCamOff, setIsCamOff] = useState(false);
+  const [isPipSwapped, setIsPipSwapped] = useState(false);
+
+  useEffect(() => {
+    let timer: any;
+    if (videoCallVisible) {
+      setCallDuration(0);
+      timer = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [videoCallVisible]);
+
+  const formatCallDuration = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remaining = secs % 60;
+    return String(mins).padStart(2, '0') + ':' + String(remaining).padStart(2, '0');
+  };
+
+  const handleOpenPeerProfile = (peer: {
+    author: string;
+    fingerprint: string;
+    badges: CryptographicBadge[];
+    lastMessage?: string;
+  }) => {
+    setSelectedPeer(peer);
+    setPeerModalVisible(true);
+  };
+
+  const handleStartVoiceCall = () => {
+    if (!selectedPeer) return;
+    setPeerModalVisible(false);
+    navigation.navigate("Voice", {
+      targetPeer: selectedPeer.author,
+      fingerprint: selectedPeer.fingerprint,
+    });
+  };
+
+  const handleStartVideoCall = () => {
+    setPeerModalVisible(false);
+    setVideoCallVisible(true);
+  };
+
+  const handleStartDirectChat = () => {
+    if (!selectedPeer) return;
+    setPeerModalVisible(false);
+    navigation.navigate("Chat", {
+      peerId: selectedPeer.fingerprint,
+      peerName: selectedPeer.author,
+    });
+  };
+
+  const handleSendWyreTip = () => {
+    if (!selectedPeer) return;
+    setPeerModalVisible(false);
+    Alert.alert(
+      "Send WYRE Tokens",
+      "Send 10.0000 WYRE micro-tip to " + selectedPeer.author + " (" + selectedPeer.fingerprint + ")?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Open Vault",
+          onPress: () => navigation.navigate("Wallet"),
+        },
+        {
+          text: "Send 10 WYRE",
+          style: "default",
+          onPress: () => {
+            Alert.alert(
+              "Transfer Confirmed",
+              "Sent 10.0000 WYRE to " + selectedPeer.author + "\nNetwork: WyreNet Subnet 51950\nRelayer: Gasless Sponsored"
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEstablishTunnel = () => {
+    if (!selectedPeer) return;
+    setPeerModalVisible(false);
+    navigation.navigate("Tunnel", {
+      targetPeer: selectedPeer.author,
+      fingerprint: selectedPeer.fingerprint,
+    });
+  };
 
   useEffect(() => {
     loadUserIdentity();
@@ -383,35 +494,59 @@ export default function WyreSupMainScreen() {
           {/* MESSAGE STREAM */}
           {channelMessages.map(item => (
             <View key={item.id} style={styles.messageRow}>
-              <View style={styles.messageHeader}>
-                <Text style={styles.msgAuthor}>{item.author}</Text>
-                <Text style={styles.msgFingerprint}>{item.fingerprint}</Text>
+              <TouchableOpacity
+                style={styles.messageHeaderTouch}
+                activeOpacity={0.65}
+                onPress={() => handleOpenPeerProfile({
+                  author: item.author,
+                  fingerprint: item.fingerprint,
+                  badges: item.badges,
+                  lastMessage: item.content,
+                })}
+              >
+                <View style={styles.authorAvatarCircle}>
+                  <Text style={styles.authorAvatarInitials}>
+                    {item.author.slice(0, 2).toUpperCase()}
+                  </Text>
+                  <View style={styles.authorOnlinePip} />
+                </View>
 
-                {item.badges.map((b, idx) => (
-                  <View
-                    key={idx}
-                    style={[
-                      styles.msgBadge,
-                      b.type === "zbat" && styles.badgeZbat,
-                      b.type === "e2ee" && styles.badgeE2ee,
-                      b.type === "direct" && styles.badgeDirect,
-                      b.type === "hops" && styles.badgeHops,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.badgeText,
-                        b.type === "zbat" && styles.badgeTextZbat,
-                        b.type === "e2ee" && styles.badgeTextE2ee,
-                      ]}
-                    >
-                      {b.label}
-                    </Text>
+                <View style={styles.authorDetailsCol}>
+                  <View style={styles.authorTopRow}>
+                    <Text style={styles.msgAuthor}>{item.author}</Text>
+                    <Text style={styles.msgFingerprint}>{item.fingerprint}</Text>
+                    <View style={styles.peerTapHint}>
+                      <Text style={styles.peerTapHintText}>[CALL / CHAT]</Text>
+                    </View>
                   </View>
-                ))}
 
-                <Text style={styles.msgTime}>{item.time}</Text>
-              </View>
+                  <View style={styles.authorBadgesRow}>
+                    {item.badges.map((b, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.msgBadge,
+                          b.type === "zbat" && styles.badgeZbat,
+                          b.type === "e2ee" && styles.badgeE2ee,
+                          b.type === "direct" && styles.badgeDirect,
+                          b.type === "hops" && styles.badgeHops,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.badgeText,
+                            b.type === "zbat" && styles.badgeTextZbat,
+                            b.type === "e2ee" && styles.badgeTextE2ee,
+                          ]}
+                        >
+                          {b.label}
+                        </Text>
+                      </View>
+                    ))}
+                    <Text style={styles.msgTime}>{item.time}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
 
               <Text style={styles.msgBody}>{item.content}</Text>
             </View>
@@ -580,6 +715,34 @@ export default function WyreSupMainScreen() {
                 </TouchableOpacity>
               ))}
 
+              {/* Category: CHANNEL PEERS */}
+              <View style={[styles.categoryHeader, { marginTop: 16 }]}>
+                <Text style={styles.categoryTitle}>▾ CHANNEL PEERS ({ONLINE_PEERS.length})</Text>
+              </View>
+              {ONLINE_PEERS.map(p => (
+                <TouchableOpacity
+                  key={p.fingerprint}
+                  style={styles.channelItem}
+                  onPress={() => {
+                    closeSidebar();
+                    handleOpenPeerProfile({
+                      author: p.author,
+                      fingerprint: p.fingerprint,
+                      badges: [{ label: "ZBAT", type: "zbat" }, { label: "E2EE", type: "e2ee" }],
+                      lastMessage: "Active in #" + currentChannel.name,
+                    });
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.memberAvatarMini}>
+                    <Text style={styles.memberAvatarMiniText}>{p.author.slice(0, 2).toUpperCase()}</Text>
+                    <View style={styles.memberOnlineMiniDot} />
+                  </View>
+                  <Text style={styles.channelName}>{p.author}</Text>
+                  <Text style={styles.memberFpMini}>({p.fingerprint.split("@")[1] || ""})</Text>
+                </TouchableOpacity>
+              ))}
+
               {/* Category: SOVEREIGN L1 */}
               <View style={[styles.categoryHeader, { marginTop: 16 }]}>
                 <Text style={styles.categoryTitle}>▾ SOVEREIGN L1</Text>
@@ -671,6 +834,262 @@ export default function WyreSupMainScreen() {
             </View>
           </Animated.View>
         </View>
+      </Modal>
+      {/* PEER PROFILE & ACTION SHEET MODAL */}
+      <Modal
+        visible={peerModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPeerModalVisible(false)}
+      >
+        <View style={styles.peerModalOverlay}>
+          <View style={styles.peerModalCard}>
+            {/* Modal Header */}
+            <View style={styles.peerModalHeader}>
+              <View style={styles.peerModalHeaderTitleRow}>
+                <View style={styles.peerHeaderDot} />
+                <Text style={styles.peerModalTitle}>SOVEREIGN PEER PROFILE</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.peerModalCloseBtn}
+                onPress={() => setPeerModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.peerModalCloseText}>[X]</Text>
+              </TouchableOpacity>
+            </View>
+
+            {selectedPeer && (
+              <ScrollView style={styles.peerModalScroll}>
+                {/* Identity Card */}
+                <View style={styles.peerIdentityCard}>
+                  <View style={styles.peerBigAvatar}>
+                    <Text style={styles.peerBigAvatarText}>
+                      {selectedPeer.author.slice(0, 2).toUpperCase()}
+                    </Text>
+                    <View style={styles.peerBigOnlineDot} />
+                  </View>
+
+                  <Text style={styles.peerCardAuthor}>{selectedPeer.author}</Text>
+                  <Text style={styles.peerCardFingerprint}>{selectedPeer.fingerprint}</Text>
+                  <Text style={styles.peerCardDid}>did:wyre:{(selectedPeer.fingerprint.split("@")[1] || "3f6753c1").repeat(4).slice(0, 32)}</Text>
+
+                  {/* Status Badges */}
+                  <View style={styles.peerStatusBadgesRow}>
+                    <View style={styles.peerStatusBadge}>
+                      <Text style={styles.peerStatusBadgeText}>ZBAT DIRECT</Text>
+                    </View>
+                    <View style={[styles.peerStatusBadge, styles.peerStatusBadgeE2ee]}>
+                      <Text style={styles.peerStatusBadgeTextE2ee}>E2EE 256-BIT</Text>
+                    </View>
+                    <View style={styles.peerStatusBadge}>
+                      <Text style={styles.peerStatusBadgeText}>MESH RELAY</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Primary Action Buttons */}
+                <Text style={styles.peerSectionHeader}>ESTABLISH P2P LINK</Text>
+
+                <View style={styles.peerActionsGrid}>
+                  {/* Action 1: Voice Call */}
+                  <TouchableOpacity
+                    style={[styles.peerActionBtn, styles.peerActionVoice]}
+                    onPress={handleStartVoiceCall}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.peerActionIconBox}>
+                      <Text style={styles.peerActionIconText}>[CALL]</Text>
+                    </View>
+                    <View style={styles.peerActionTextBox}>
+                      <Text style={styles.peerActionMainText}>VOICE CALL</Text>
+                      <Text style={styles.peerActionSubText}>Acoustic DTMF & Sawt Channel</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Action 2: Video Call */}
+                  <TouchableOpacity
+                    style={[styles.peerActionBtn, styles.peerActionVideo]}
+                    onPress={handleStartVideoCall}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.peerActionIconBox, styles.peerActionIconBoxVideo]}>
+                      <Text style={styles.peerActionIconTextVideo}>[VIDEO]</Text>
+                    </View>
+                    <View style={styles.peerActionTextBox}>
+                      <Text style={styles.peerActionMainTextVideo}>VIDEO CALL</Text>
+                      <Text style={styles.peerActionSubText}>P2P WebRTC Video HUD Stream</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Action 3: Direct Chat */}
+                  <TouchableOpacity
+                    style={styles.peerActionBtn}
+                    onPress={handleStartDirectChat}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.peerActionIconBox}>
+                      <Text style={styles.peerActionIconText}>[CHAT]</Text>
+                    </View>
+                    <View style={styles.peerActionTextBox}>
+                      <Text style={styles.peerActionMainText}>DIRECT CHAT (1:1 DM)</Text>
+                      <Text style={styles.peerActionSubText}>End-to-End Encrypted Messages</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Action 4: Send WYRE */}
+                  <TouchableOpacity
+                    style={styles.peerActionBtn}
+                    onPress={handleSendWyreTip}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.peerActionIconBox}>
+                      <Text style={styles.peerActionIconText}>[VAULT]</Text>
+                    </View>
+                    <View style={styles.peerActionTextBox}>
+                      <Text style={styles.peerActionMainText}>SEND WYRE TOKENS</Text>
+                      <Text style={styles.peerActionSubText}>Subnet 51950 Gasless Micro-Tip</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Action 5: P2P Tunnel */}
+                  <TouchableOpacity
+                    style={styles.peerActionBtn}
+                    onPress={handleEstablishTunnel}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.peerActionIconBox}>
+                      <Text style={styles.peerActionIconText}>[TUNNEL]</Text>
+                    </View>
+                    <View style={styles.peerActionTextBox}>
+                      <Text style={styles.peerActionMainText}>ESTABLISH P2P TUNNEL</Text>
+                      <Text style={styles.peerActionSubText}>Nafaq / SOCKS5 Sovereign Proxy</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* SOVEREIGN P2P VIDEO CALL HUD MODAL */}
+      <Modal
+        visible={videoCallVisible}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => setVideoCallVisible(false)}
+      >
+        <SafeAreaView style={styles.videoModalSafe}>
+          <StatusBar barStyle="light-content" backgroundColor="#05070a" />
+
+          {/* Video Call Topbar */}
+          <View style={styles.videoTopbar}>
+            <View style={styles.videoPeerTag}>
+              <View style={styles.videoLiveDot} />
+              <Text style={styles.videoPeerName}>
+                {selectedPeer ? selectedPeer.author.toUpperCase() : "PEER"}
+              </Text>
+              <Text style={styles.videoPeerFp}>
+                ({selectedPeer ? selectedPeer.fingerprint : "P2P"})
+              </Text>
+            </View>
+
+            <View style={styles.videoTimerPill}>
+              <Text style={styles.videoTimerText}>{formatCallDuration(callDuration)}</Text>
+            </View>
+
+            <View style={styles.videoSecurityBadge}>
+              <Text style={styles.videoSecurityText}>SRTP / E2EE</Text>
+            </View>
+          </View>
+
+          {/* Video Viewport Area */}
+          <View style={styles.videoCanvasContainer}>
+            {/* Remote Video Canvas Viewport */}
+            <View style={styles.remoteVideoCanvas}>
+              {/* Scanline Grid Effect / Cyberpunk HUD */}
+              <View style={styles.videoGridHud}>
+                <View style={styles.gridCrossTopLeft} />
+                <View style={styles.gridCrossTopRight} />
+                <View style={styles.gridCrossBottomLeft} />
+                <View style={styles.gridCrossBottomRight} />
+
+                <Text style={styles.resolutionBadge}>720p @ 30fps | 14ms</Text>
+              </View>
+
+              {/* Remote Peer Hologram / Visualizer */}
+              <View style={styles.peerHologramBox}>
+                <View style={styles.hologramAvatarCircle}>
+                  <Text style={styles.hologramAvatarInitials}>
+                    {selectedPeer ? selectedPeer.author.slice(0, 2).toUpperCase() : "OM"}
+                  </Text>
+                  <View style={styles.hologramPulseRing} />
+                </View>
+                <Text style={styles.hologramPeerLabel}>
+                  {selectedPeer ? selectedPeer.author : "peer"} [REMOTE STREAM ACTIVE]
+                </Text>
+                <Text style={styles.hologramSubLabel}>WebRTC SRTP Stream: Encrypted</Text>
+              </View>
+
+              {/* Local PIP Viewport */}
+              <TouchableOpacity
+                style={styles.localVideoPip}
+                activeOpacity={0.8}
+                onPress={() => setIsPipSwapped(!isPipSwapped)}
+              >
+                <View style={styles.localPipInner}>
+                  <Text style={styles.localPipTag}>YOU (LOCAL)</Text>
+                  <Text style={styles.localPipStatus}>{isCamOff ? "CAM OFF" : "CAM ON"}</Text>
+                  <Text style={styles.localPipSwapText}>[SWAP]</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Bottom Dock Controls */}
+          <View style={styles.videoControlsDock}>
+            {/* Mute Button */}
+            <TouchableOpacity
+              style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]}
+              onPress={() => setIsMuted(!isMuted)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.callControlText, isMuted && styles.callControlTextActive]}>
+                {isMuted ? "[MIC: OFF]" : "[MIC: ON]"}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Cam Button */}
+            <TouchableOpacity
+              style={[styles.callControlBtn, isCamOff && styles.callControlBtnActive]}
+              onPress={() => setIsCamOff(!isCamOff)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.callControlText, isCamOff && styles.callControlTextActive]}>
+                {isCamOff ? "[CAM: OFF]" : "[CAM: ON]"}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Swap Button */}
+            <TouchableOpacity
+              style={styles.callControlBtn}
+              onPress={() => setIsPipSwapped(!isPipSwapped)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.callControlText}>[SWAP]</Text>
+            </TouchableOpacity>
+
+            {/* End Call Button */}
+            <TouchableOpacity
+              style={[styles.callControlBtn, styles.callControlBtnEnd]}
+              onPress={() => setVideoCallVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.callControlTextEnd}>[END CALL]</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -1123,4 +1542,561 @@ const styles = StyleSheet.create({
   iconActionText: {
     fontSize: 16,
   },
+  // --- Interactive Peer Touch & Avatars ---
+  messageHeaderTouch: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 4,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  authorAvatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+    marginTop: 2,
+    position: "relative",
+  },
+  authorAvatarInitials: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#00f59b",
+  },
+  authorOnlinePip: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#00f59b",
+    position: "absolute",
+    bottom: -1,
+    right: -1,
+    borderWidth: 1,
+    borderColor: "#07090e",
+  },
+  authorDetailsCol: {
+    flex: 1,
+  },
+  authorTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  peerTapHint: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: "rgba(0, 245, 155, 0.08)",
+    borderWidth: 0.5,
+    borderColor: "rgba(0, 245, 155, 0.35)",
+  },
+  peerTapHintText: {
+    fontSize: 8,
+    fontWeight: "800",
+    color: "#00f59b",
+    letterSpacing: 0.5,
+  },
+  authorBadgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 3,
+  },
+
+  // --- Channel Members Drawer ---
+  memberAvatarMini: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+    position: "relative",
+  },
+  memberAvatarMiniText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#00f59b",
+  },
+  memberOnlineMiniDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#00f59b",
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+  },
+  memberFpMini: {
+    fontSize: 10,
+    color: "#6e7681",
+    fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
+    marginLeft: 6,
+  },
+
+  // --- Peer Profile Modal Styles ---
+  peerModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  peerModalCard: {
+    width: "100%",
+    maxHeight: "85%",
+    backgroundColor: "#0d1117",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.35)",
+    overflow: "hidden",
+  },
+  peerModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "#161b22",
+  },
+  peerModalHeaderTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  peerHeaderDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#00f59b",
+    marginRight: 8,
+  },
+  peerModalTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#00f59b",
+    letterSpacing: 0.8,
+  },
+  peerModalCloseBtn: {
+    padding: 4,
+  },
+  peerModalCloseText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#8b949e",
+  },
+  peerModalScroll: {
+    padding: 16,
+  },
+  peerIdentityCard: {
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    marginBottom: 16,
+  },
+  peerBigAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#161b22",
+    borderWidth: 2,
+    borderColor: "#00f59b",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+    position: "relative",
+  },
+  peerBigAvatarText: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#00f59b",
+  },
+  peerBigOnlineDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#00f59b",
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    borderWidth: 2,
+    borderColor: "#0d1117",
+  },
+  peerCardAuthor: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#ffffff",
+    marginBottom: 2,
+  },
+  peerCardFingerprint: {
+    fontSize: 12,
+    color: "#8b949e",
+    fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
+    marginBottom: 2,
+  },
+  peerCardDid: {
+    fontSize: 10,
+    color: "#6e7681",
+    fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
+    marginBottom: 10,
+  },
+  peerStatusBadgesRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  peerStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  peerStatusBadgeE2ee: {
+    backgroundColor: "rgba(0, 245, 155, 0.12)",
+    borderColor: "rgba(0, 245, 155, 0.4)",
+  },
+  peerStatusBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#8b949e",
+  },
+  peerStatusBadgeTextE2ee: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#00f59b",
+  },
+
+  peerSectionHeader: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#8b949e",
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  peerActionsGrid: {
+    gap: 10,
+    marginBottom: 20,
+  },
+  peerActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+  },
+  peerActionVoice: {
+    backgroundColor: "rgba(0, 245, 155, 0.06)",
+    borderColor: "rgba(0, 245, 155, 0.25)",
+  },
+  peerActionVideo: {
+    backgroundColor: "rgba(0, 212, 255, 0.06)",
+    borderColor: "rgba(0, 212, 255, 0.3)",
+  },
+  peerActionIconBox: {
+    width: 48,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  peerActionIconBoxVideo: {
+    width: 52,
+  },
+  peerActionIconText: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: "#00f59b",
+    fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
+  },
+  peerActionIconTextVideo: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: "#00d4ff",
+    fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
+  },
+  peerActionTextBox: {
+    flex: 1,
+  },
+  peerActionMainText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#ffffff",
+    marginBottom: 2,
+  },
+  peerActionMainTextVideo: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#00d4ff",
+    marginBottom: 2,
+  },
+  peerActionSubText: {
+    fontSize: 10,
+    color: "#8b949e",
+  },
+
+  // --- Video Call Modal Styles ---
+  videoModalSafe: {
+    flex: 1,
+    backgroundColor: "#05070a",
+  },
+  videoTopbar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#0a0f16",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 245, 155, 0.2)",
+  },
+  videoPeerTag: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  videoLiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#00f59b",
+    marginRight: 6,
+  },
+  videoPeerName: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#00f59b",
+    marginRight: 4,
+  },
+  videoPeerFp: {
+    fontSize: 10,
+    color: "#6e7681",
+    fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
+  },
+  videoTimerPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: "rgba(0, 245, 155, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.4)",
+  },
+  videoTimerText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#00f59b",
+    fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
+  },
+  videoSecurityBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderWidth: 0.5,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+  videoSecurityText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#8b949e",
+  },
+  videoCanvasContainer: {
+    flex: 1,
+    padding: 12,
+  },
+  remoteVideoCanvas: {
+    flex: 1,
+    backgroundColor: "#090d14",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.3)",
+    overflow: "hidden",
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoGridHud: {
+    ...StyleSheet.absoluteFillObject,
+    padding: 12,
+    justifyContent: "space-between",
+  },
+  gridCrossTopLeft: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    width: 14,
+    height: 14,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: "#00f59b",
+  },
+  gridCrossTopRight: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 14,
+    height: 14,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderColor: "#00f59b",
+  },
+  gridCrossBottomLeft: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    width: 14,
+    height: 14,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: "#00f59b",
+  },
+  gridCrossBottomRight: {
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+    width: 14,
+    height: 14,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderColor: "#00f59b",
+  },
+  resolutionBadge: {
+    alignSelf: "flex-end",
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#00f59b",
+    fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  peerHologramBox: {
+    alignItems: "center",
+  },
+  hologramAvatarCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#161b22",
+    borderWidth: 2,
+    borderColor: "#00f59b",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    position: "relative",
+  },
+  hologramAvatarInitials: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#00f59b",
+  },
+  hologramPulseRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 45,
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.4)",
+    transform: [{ scale: 1.2 }],
+  },
+  hologramPeerLabel: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  hologramSubLabel: {
+    fontSize: 11,
+    color: "#8b949e",
+  },
+  localVideoPip: {
+    position: "absolute",
+    bottom: 14,
+    right: 14,
+    width: 100,
+    height: 130,
+    backgroundColor: "#111622",
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#00f59b",
+    overflow: "hidden",
+    elevation: 8,
+  },
+  localPipInner: {
+    flex: 1,
+    padding: 6,
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+  },
+  localPipTag: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#00f59b",
+  },
+  localPipStatus: {
+    fontSize: 10,
+    color: "#ffffff",
+    fontWeight: "700",
+  },
+  localPipSwapText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#8b949e",
+  },
+  videoControlsDock: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    backgroundColor: "#0a0f16",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0, 245, 155, 0.2)",
+  },
+  callControlBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "#161b22",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+  },
+  callControlBtnActive: {
+    backgroundColor: "rgba(255, 100, 100, 0.15)",
+    borderColor: "#ff4444",
+  },
+  callControlText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#00f59b",
+    letterSpacing: 0.5,
+  },
+  callControlTextActive: {
+    color: "#ff4444",
+  },
+  callControlBtnEnd: {
+    backgroundColor: "#b91c1c",
+    borderColor: "#ef4444",
+    paddingHorizontal: 14,
+  },
+  callControlTextEnd: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: 0.5,
+  },
+
 });

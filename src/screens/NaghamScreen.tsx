@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRoute } from '@react-navigation/native';
 import {
     View,
     Text,
@@ -27,6 +28,11 @@ const DTMF_KEYS = [
 ];
 
 export default function NaghamScreen() {
+    const route = useRoute<any>();
+    const targetPeer = route?.params?.targetPeer || '';
+    const targetFingerprint = route?.params?.fingerprint || '';
+    const isVideo = route?.params?.isVideo || false;
+
     const [state, setState] = useState<NaghamState>('sakin');
     const [myPeerId, setMyPeerId] = useState('');
     const [receivedPayload, setReceivedPayload] = useState<NaghamPayload | null>(null);
@@ -169,6 +175,14 @@ export default function NaghamScreen() {
                         MIC: {hasAudioPermission ? '[ACTIVE / GRANTED]' : '[PERMISSION REQUIRED]'}
                     </Text>
                 </View>
+                {targetPeer ? (
+                    <View style={styles.targetPeerBanner}>
+                        <View style={styles.targetDot} />
+                        <Text style={styles.targetPeerText}>
+                            {isVideo ? 'VIDEO CALL TARGET:' : 'CALLING:'} {targetPeer.toUpperCase()} ({targetFingerprint || 'ZBAT P2P'})
+                        </Text>
+                    </View>
+                ) : null}
             </View>
 
             {/* Visualizer Circle */}
@@ -318,6 +332,30 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
         fontFamily: 'monospace',
+    },
+    targetPeerBanner: {
+        marginTop: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: 'rgba(0, 255, 136, 0.12)',
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#00ff88',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    targetDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#00ff88',
+        marginRight: 8,
+    },
+    targetPeerText: {
+        color: '#00ff88',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     centerArea: {
         alignItems: 'center',
