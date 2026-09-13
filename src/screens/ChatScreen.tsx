@@ -79,7 +79,7 @@ export default function ChatScreen({ peerId, peerName }: Props) {
             {/* Input */}
             <View style={styles.inputContainer}>
                 <TouchableOpacity style={styles.voiceButton}>
-                    <Text style={styles.voiceIcon}>🎙️</Text>
+                    <Text style={styles.voiceIcon}>[MIC]</Text>
                 </TouchableOpacity>
                 <TextInput
                     style={styles.input}
@@ -95,7 +95,7 @@ export default function ChatScreen({ peerId, peerName }: Props) {
                     onPress={sendMessage}
                     disabled={!inputText.trim()}
                 >
-                    <Text style={styles.sendIcon}>➤</Text>
+                    <Text style={styles.sendIcon}>{'>'}</Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>

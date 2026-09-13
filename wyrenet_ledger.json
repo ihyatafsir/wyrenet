@@ -65,10 +65,10 @@
       "rendezvousHints": [
         "tariq@34ec8d07"
       ],
-      "registeredAt": 1789288054873,
-      "isoRegisteredAt": "2026-09-13T08:27:34.873Z",
-      "blockHeight": 29512,
-      "txHash": "0xab474ad42574a577fa6f9b9e0d1b54901f352518af3d39ed3e947c917d934199",
+      "registeredAt": 1789303102358,
+      "isoRegisteredAt": "2026-09-13T12:38:22.358Z",
+      "blockHeight": 37036,
+      "txHash": "0x7ec083a68b768dff64bf7576a854088a40149aec36b443ed82920f7bb033018e",
       "chainId": 51950,
       "reputation": 100,
       "isVerified": true
@@ -175,5 +175,5 @@
       "isoTimestamp": "2026-09-13T08:55:59.375Z"
     }
   },
-  "updatedAt": "2026-09-13T08:55:59.375Z"
+  "updatedAt": "2026-09-13T12:38:22.358Z"
 }

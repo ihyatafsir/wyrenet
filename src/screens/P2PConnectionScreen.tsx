@@ -210,7 +210,7 @@ export default function P2PConnectionScreen() {
                 addMessage({
                     id: `sys-${Date.now()}`,
                     from: 'system',
-                    content: `🟢 ${msg.peerId.split('@')[0]} joined (🔐 encrypted)`,
+                    content: `[OK] ${msg.peerId.split('@')[0]} joined ([E2EE] encrypted)`,
                     timestamp: Date.now(),
                     isMine: false
                 });
@@ -222,7 +222,7 @@ export default function P2PConnectionScreen() {
                 addMessage({
                     id: `sys-${Date.now()}`,
                     from: 'system',
-                    content: `🔴 ${msg.peerId.split('@')[0]} left`,
+                    content: `[OFF] ${msg.peerId.split('@')[0]} left`,
                     timestamp: Date.now(),
                     isMine: false
                 });
@@ -265,15 +265,15 @@ export default function P2PConnectionScreen() {
                 try {
                     const decrypted = await Miftah.fakk(msg.from, encryptedData);
                     if (decrypted) {
-                        displayContent = `🔓 ${decrypted}`;
+                        displayContent = `[OPEN] ${decrypted}`;
                         wasDecrypted = true;
                         console.log(`[P2P] ✓ Decrypted: "${decrypted.slice(0, 30)}..."`);
                     } else {
-                        displayContent = `⚠️ [Decrypt failed - possible replay]`;
+                        displayContent = `[WARN] [Decrypt failed - possible replay]`;
                         console.warn('[P2P] Decryption failed (replay attack or no key)');
                     }
                 } catch (e) {
-                    displayContent = `⚠️ [Decrypt error]`;
+                    displayContent = `[WARN] [Decrypt error]`;
                     console.error('[P2P] Decryption error:', e);
                 }
             }
@@ -359,11 +359,11 @@ export default function P2PConnectionScreen() {
         }
 
         // Add to local messages (show original)
-        const transportIcon = tcpConnected ? '🔌' : '🌐';
+        const transportIcon = tcpConnected ? '[TCP]' : '[NET]';
         addMessage({
             id: `msg-${Date.now()}`,
             from: myId,
-            content: wasEncrypted ? `🔐${transportIcon} ${content}` : `${transportIcon} ${content}`,
+            content: wasEncrypted ? `[E2EE]${transportIcon} ${content}` : `${transportIcon} ${content}`,
             timestamp: Date.now(),
             isMine: true
         });
@@ -421,7 +421,7 @@ export default function P2PConnectionScreen() {
             addMessage({
                 id: `sys-${Date.now()}`,
                 from: 'system',
-                content: '🔌 Host mode stopped',
+                content: '[TCP] Host mode stopped',
                 timestamp: Date.now(),
                 isMine: false
             });
@@ -446,7 +446,7 @@ export default function P2PConnectionScreen() {
                     addMessage({
                         id: `msg-${Date.now()}`,
                         from,
-                        content: encrypted ? `🔐 ${content}` : content,
+                        content: encrypted ? `[E2EE] ${content}` : content,
                         timestamp: Date.now(),
                         isMine: false
                     });
@@ -460,7 +460,7 @@ export default function P2PConnectionScreen() {
                 addMessage({
                     id: `sys-${Date.now()}`,
                     from: 'system',
-                    content: `📡 Hosting at ${info.ip}:${info.port} - share your link!`,
+                    content: `[HOST] Hosting at ${info.ip}:${info.port} - share your link!`,
                     timestamp: Date.now(),
                     isMine: false
                 });
@@ -480,7 +480,7 @@ export default function P2PConnectionScreen() {
                 addMessage({
                     id: `sys-${Date.now()}`,
                     from: 'system',
-                    content: `✅ Connected to ${host}:${port}`,
+                    content: `[PASS] Connected to ${host}:${port}`,
                     timestamp: Date.now(),
                     isMine: false
                 });
@@ -490,7 +490,7 @@ export default function P2PConnectionScreen() {
                 addMessage({
                     id: `msg-${Date.now()}`,
                     from,
-                    content: encrypted ? `🔐 ${content}` : content,
+                    content: encrypted ? `[E2EE] ${content}` : content,
                     timestamp: Date.now(),
                     isMine: false
                 });
@@ -501,7 +501,7 @@ export default function P2PConnectionScreen() {
                 addMessage({
                     id: `sys-${Date.now()}`,
                     from: 'system',
-                    content: '❌ Disconnected from host',
+                    content: '[FAIL] Disconnected from host',
                     timestamp: Date.now(),
                     isMine: false
                 });
@@ -536,7 +536,7 @@ export default function P2PConnectionScreen() {
             addMessage({
                 id: `sys-${Date.now()}`,
                 from: 'system',
-                content: `📤 Link copied! Share it with peers to connect.`,
+                content: `[TX] Link copied! Share it with peers to connect.`,
                 timestamp: Date.now(),
                 isMine: false
             });
@@ -597,7 +597,7 @@ export default function P2PConnectionScreen() {
             addMessage({
                 id: `sys-${Date.now()}`,
                 from: 'system',
-                content: `🔗 ${peer.peerId.split('@')[0]} is hosting - connecting via TCP...`,
+                content: `[LINK] ${peer.peerId.split('@')[0]} is hosting - connecting via TCP...`,
                 timestamp: Date.now(),
                 isMine: false
             });
@@ -622,11 +622,11 @@ export default function P2PConnectionScreen() {
                 return prev;
             });
 
-            const carrierMatch = peer.sameCarrier ? '✅ Same carrier' : '🌐 Different network';
+            const carrierMatch = peer.sameCarrier ? '[PASS] Same carrier' : '[NET] Different network';
             addMessage({
                 id: `sys-${Date.now()}`,
                 from: 'system',
-                content: `🔗 Added ${peer.peerId.split('@')[0]} (${carrierMatch}) 🔐`,
+                content: `[LINK] Added ${peer.peerId.split('@')[0]} (${carrierMatch}) [E2EE]`,
                 timestamp: Date.now(),
                 isMine: false
             });
@@ -671,13 +671,13 @@ export default function P2PConnectionScreen() {
                         onPress={badrShareLink}
                         disabled={!myLink}
                     >
-                        <Text style={styles.shareButtonText}>📤 Share Link</Text>
+                        <Text style={styles.shareButtonText}>[TX] Share Link</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.addPeerButton}
                         onPress={addPeerFromLink}
                     >
-                        <Text style={styles.addPeerButtonText}>📥 Add Peer</Text>
+                        <Text style={styles.addPeerButtonText}>[RX] Add Peer</Text>
                     </TouchableOpacity>
                 </View>
 

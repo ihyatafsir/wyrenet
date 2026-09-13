@@ -30,6 +30,9 @@ export const colors = {
     offline: '#ff4444',
     connecting: '#ffaa00',
     encrypted: '#00aaff',
+    success: '#00ff88',
+    warning: '#ffaa00',
+    error: '#ff4444',
 
     // Message colors
     messageMine: '#0a2a1a',

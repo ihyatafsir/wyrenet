@@ -8,7 +8,7 @@
 // Ghāyah: Replicate news/wyresup Discord-style decentralized mesh interface
 // ==============================================================================
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface CryptographicBadge {
@@ -208,6 +208,12 @@ export default function WyreSupMainScreen() {
     loadUserIdentity();
     loadSavedMessages();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadSavedMessages();
+    }, [])
+  );
 
   const loadSavedMessages = async () => {
     try {
@@ -406,7 +412,7 @@ export default function WyreSupMainScreen() {
         {/* COMPOSER BAR */}
         <View style={styles.composerWrapper}>
           <View style={styles.composerBox}>
-            <TouchableOpacity style={styles.attachBtn} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.attachBtn} activeOpacity={0.7} onPress={() => navigation.navigate("Library")}>
               <Text style={styles.attachBtnText}>+</Text>
             </TouchableOpacity>
 
@@ -875,6 +881,21 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: "#8b949e",
     fontWeight: "600",
+  },
+  shieldBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: "rgba(0, 245, 155, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.3)",
+    marginRight: 6,
+  },
+  shieldBadgeText: {
+    color: "#00f59b",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   shieldIcon: {
     fontSize: 16,

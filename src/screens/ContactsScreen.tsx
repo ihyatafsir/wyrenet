@@ -250,7 +250,7 @@ export default function ContactsScreen() {
             {/* Contacts List */}
             {contacts.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyIcon}>👥</Text>
+                    <Text style={styles.emptyIcon}>[PEERS]</Text>
                     <Text style={styles.emptyText}>No contacts yet</Text>
                     <Text style={styles.emptyHint}>
                         Tap + to add a contact by IP address or WyreSup ID

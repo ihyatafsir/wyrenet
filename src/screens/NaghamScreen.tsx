@@ -1,6 +1,7 @@
 /**
  * شَاشَة النَّغَم (Shashat al-Nagham) - Voice Channel Screen
  * UI for DTMF voice channel communication
+ * Zero emojis. Full runtime audio permission enforcement.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { colors, spacing, borderRadius } from '../ui/theme';
 import { naghamDTMF, NaghamPayload, NaghamState } from '../network/NaghamDTMF';
+import { requestAudioPermission, checkAudioPermission } from '../utils/permissions';
 
 // DTMF keypad layout
 const DTMF_KEYS = [
@@ -30,12 +32,23 @@ export default function NaghamScreen() {
     const [receivedPayload, setReceivedPayload] = useState<NaghamPayload | null>(null);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [pressedKey, setPressedKey] = useState<string | null>(null);
+    const [hasAudioPermission, setHasAudioPermission] = useState<boolean>(false);
 
     // Animation for the center visual
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const rotateAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
+        // Check / Request runtime audio permission
+        (async () => {
+            const hasPerm = await checkAudioPermission();
+            setHasAudioPermission(hasPerm);
+            if (!hasPerm) {
+                const granted = await requestAudioPermission();
+                setHasAudioPermission(granted);
+            }
+        })();
+
         // Initialize DTMF module
         naghamDTMF.initialize();
 
@@ -47,7 +60,7 @@ export default function NaghamScreen() {
         naghamDTMF.setOnDecode((payload) => {
             setReceivedPayload(payload);
             Alert.alert(
-                '✓ Peer Received!',
+                '[OK] Peer Received',
                 `Connected to: ${payload.peerId}`,
                 [{ text: 'OK' }]
             );
@@ -99,14 +112,33 @@ export default function NaghamScreen() {
             return;
         }
 
+        const granted = hasAudioPermission || (await requestAudioPermission());
+        if (!granted) {
+            Alert.alert(
+                'Permission Required',
+                'Microphone / audio permission is required to transmit acoustic keys.'
+            );
+            return;
+        }
+        setHasAudioPermission(true);
+
         const payload = naghamDTMF.createPeerExchangePayload(myPeerId);
         await naghamDTMF.transmit(payload);
     };
 
-    const handleListen = () => {
+    const handleListen = async () => {
         if (state === 'yastami') {
             naghamDTMF.stopListening();
         } else {
+            const granted = hasAudioPermission || (await requestAudioPermission());
+            if (!granted) {
+                Alert.alert(
+                    'Microphone Permission Required',
+                    'WyreNet needs RECORD_AUDIO permission to listen and decode DTMF acoustic signals.'
+                );
+                return;
+            }
+            setHasAudioPermission(true);
             naghamDTMF.startListening();
         }
     };
@@ -114,54 +146,52 @@ export default function NaghamScreen() {
     const getStateInfo = () => {
         switch (state) {
             case 'sakin':
-                return { label: 'Ready', color: colors.textMuted, emoji: '📞' };
+                return { label: 'Ready', color: colors.textMuted, badge: '[IDLE]' };
             case 'yunghim':
-                return { label: 'Transmitting...', color: colors.warning, emoji: '🎵' };
+                return { label: 'Transmitting...', color: colors.warning, badge: '[TX]' };
             case 'yastami':
-                return { label: 'Listening...', color: colors.primary, emoji: '👂' };
+                return { label: 'Listening...', color: colors.primary, badge: '[RX]' };
             case 'muttasil':
-                return { label: 'Connected!', color: colors.success, emoji: '✓' };
+                return { label: 'Connected', color: colors.success, badge: '[OK]' };
         }
     };
 
     const stateInfo = getStateInfo();
-    const rotateInterpolate = rotateAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0deg', '360deg'],
-    });
 
     return (
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>نَغَم Voice Channel</Text>
-                <Text style={styles.subtitle}>P2P over phone call (no data!)</Text>
+                <Text style={styles.subtitle}>P2P Acoustic DTMF Voice Key Exchange</Text>
+                <View style={styles.permBadge}>
+                    <Text style={[styles.permText, { color: hasAudioPermission ? colors.success : colors.warning }]}>
+                        MIC: {hasAudioPermission ? '[ACTIVE / GRANTED]' : '[PERMISSION REQUIRED]'}
+                    </Text>
+                </View>
             </View>
 
-            {/* Central Visual */}
+            {/* Visualizer Circle */}
             <View style={styles.centerArea}>
                 <Animated.View
                     style={[
                         styles.outerRing,
                         {
-                            transform: [
-                                { scale: pulseAnim },
-                                { rotate: rotateInterpolate },
-                            ],
                             borderColor: stateInfo.color,
+                            transform: [{ scale: pulseAnim }],
                         },
                     ]}
                 >
                     <View style={[styles.innerCircle, { backgroundColor: stateInfo.color + '20' }]}>
-                        <Text style={styles.centerEmoji}>{stateInfo.emoji}</Text>
+                        <Text style={[styles.centerBadge, { color: stateInfo.color }]}>
+                            {stateInfo.badge}
+                        </Text>
                     </View>
                 </Animated.View>
-
                 <Text style={[styles.stateLabel, { color: stateInfo.color }]}>
                     {stateInfo.label}
                 </Text>
-
-                {state === 'yunghim' && progress.total > 0 && (
+                {state === 'yunghim' && (
                     <Text style={styles.progressText}>
                         Tone {progress.current}/{progress.total}
                     </Text>
@@ -209,7 +239,7 @@ export default function NaghamScreen() {
                     onPress={handleTransmit}
                     disabled={state !== 'sakin'}
                 >
-                    <Text style={styles.actionEmoji}>📤</Text>
+                    <Text style={styles.actionBadge}>[TX]</Text>
                     <Text style={styles.actionText}>Transmit</Text>
                 </TouchableOpacity>
 
@@ -221,8 +251,8 @@ export default function NaghamScreen() {
                     onPress={handleListen}
                     disabled={state === 'yunghim'}
                 >
-                    <Text style={styles.actionEmoji}>
-                        {state === 'yastami' ? '⏹️' : '📥'}
+                    <Text style={styles.actionBadge}>
+                        {state === 'yastami' ? '[STOP]' : '[RX]'}
                     </Text>
                     <Text style={styles.actionText}>
                         {state === 'yastami' ? 'Stop' : 'Listen'}
@@ -245,10 +275,10 @@ export default function NaghamScreen() {
             <View style={styles.instructions}>
                 <Text style={styles.instructionTitle}>How to use:</Text>
                 <Text style={styles.instructionText}>
-                    1. Call your peer (regular phone call){'\n'}
-                    2. One person taps "Transmit" to send tones{'\n'}
-                    3. Other person taps "Listen" to decode{'\n'}
-                    4. Once connected, switch to data connection
+                    1. Call your peer over telephone or radio{'\n'}
+                    2. One person taps "[TX] Transmit" to emit acoustic tones{'\n'}
+                    3. Other person taps "[RX] Listen" to decode over microphone{'\n'}
+                    4. Cryptographic keys authenticate without any Internet
                 </Text>
             </View>
         </View>
@@ -275,9 +305,23 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         marginTop: spacing.xs,
     },
+    permBadge: {
+        marginTop: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 6,
+        backgroundColor: colors.bgElevated,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    permText: {
+        fontSize: 11,
+        fontWeight: '700',
+        fontFamily: 'monospace',
+    },
     centerArea: {
         alignItems: 'center',
-        paddingVertical: spacing.xl,
+        paddingVertical: spacing.lg,
     },
     outerRing: {
         width: 120,
@@ -294,8 +338,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    centerEmoji: {
-        fontSize: 40,
+    centerBadge: {
+        fontSize: 22,
+        fontWeight: '800',
+        fontFamily: 'monospace',
     },
     stateLabel: {
         fontSize: 16,
@@ -336,7 +382,7 @@ const styles = StyleSheet.create({
     },
     key: {
         width: 50,
-        height: 40,
+        height: 38,
         backgroundColor: colors.bgCard,
         borderRadius: borderRadius.sm,
         alignItems: 'center',
@@ -350,13 +396,13 @@ const styles = StyleSheet.create({
     },
     keyText: {
         color: colors.textPrimary,
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
     },
     actions: {
         flexDirection: 'row',
         gap: spacing.md,
-        marginBottom: spacing.lg,
+        marginBottom: spacing.md,
     },
     actionButton: {
         flex: 1,
@@ -382,8 +428,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.error,
     },
-    actionEmoji: {
-        fontSize: 20,
+    actionBadge: {
+        color: colors.textPrimary,
+        fontFamily: 'monospace',
+        fontSize: 14,
+        fontWeight: '700',
     },
     actionText: {
         color: colors.textPrimary,

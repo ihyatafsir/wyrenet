@@ -57,7 +57,7 @@ export default function FeedScreen() {
                 <Text style={styles.title}>نَشْر</Text>
                 <Text style={styles.subtitle}>Feed</Text>
                 <TouchableOpacity style={styles.composeButton} onPress={() => setShowCompose(!showCompose)}>
-                    <Text style={styles.composeIcon}>{showCompose ? '✕' : '✎'}</Text>
+                    <Text style={styles.composeIcon}>{showCompose ? '✕' : '[EDIT]'}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -86,7 +86,7 @@ export default function FeedScreen() {
             {/* Posts */}
             {posts.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyIcon}>📝</Text>
+                    <Text style={styles.emptyIcon}>[NOTE]</Text>
                     <Text style={styles.emptyText}>No posts yet</Text>
                     <Text style={styles.emptyHint}>
                         Posts are stored only on followers' devices

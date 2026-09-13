@@ -30,6 +30,7 @@ import TunnelScreen from "./src/screens/TunnelScreen";
 import NaghamScreen from "./src/screens/NaghamScreen";
 import MaladhScreen from "./src/screens/MaladhScreen";
 import LibraryScreen from "./src/screens/LibraryScreen";
+import { requestAudioPermission } from "./src/utils/permissions";
 import { deserializeIdentity, WyreSUpIdentity } from "./src/utils/Identity";
 
 const Stack = createNativeStackNavigator();
@@ -199,6 +200,7 @@ export default function App() {
 
   useEffect(() => {
     checkIdentity();
+    requestAudioPermission().catch(() => {});
   }, []);
 
   const checkIdentity = async () => {

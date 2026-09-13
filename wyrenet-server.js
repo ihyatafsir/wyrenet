@@ -998,6 +998,32 @@ ${challengeObj.message.length}${challengeObj.message}`;
     }
   }
 
+  // Endpoints: Scholar Catalog APIs (/api/library/razi, /api/library/ghazali, etc.)
+  if (pathname.startsWith('/api/library/')) {
+    const imamSlug = pathname.replace('/api/library/', '').trim().toLowerCase();
+    const manifestPath = path.join(__dirname, 'public/epubs/wyrenet_classical_corpus_l1_manifest.json');
+    if (fs.existsSync(manifestPath)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const allBooks = raw.books || [];
+        const filtered = imamSlug === 'all' 
+          ? allBooks 
+          : allBooks.filter(b => b.imam_key === imamSlug || (b.channelId && b.channelId.includes(imamSlug)));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          imam: imamSlug,
+          total: filtered.length,
+          v4_bilingual_count: filtered.filter(b => b.version === 'v4').length,
+          v5_masterworks_count: filtered.filter(b => b.version === 'v5').length,
+          books: filtered
+        }));
+        return;
+      } catch (err) {
+        // Fall through to static
+      }
+    }
+  }
+
   // Static File Serving
   let relativePath = pathname === '/' || pathname === '/wyrenet' ? '/index.html' : pathname;
   let filePath = path.join(__dirname, relativePath);

@@ -30,10 +30,10 @@ function TunnelItem({ tunnel, state, stats, onToggle, onDelete }: TunnelItemProp
     const isOpening = state === 'yaftah';
 
     const stateLabels: Record<TunnelState, { text: string; emoji: string }> = {
-        mughlag: { text: 'Closed', emoji: '🔴' },
-        yaftah: { text: 'Opening...', emoji: '🟡' },
-        maftuh: { text: 'Open', emoji: '🟢' },
-        muqta: { text: 'Error', emoji: '⚠️' },
+        mughlag: { text: 'Closed', badge: '[CLOSED]' },
+        yaftah: { text: 'Opening...', badge: '[WAIT]' },
+        maftuh: { text: 'Open', badge: '[OPEN]' },
+        muqta: { text: 'Error', badge: '[ERR]' },
     };
 
     const formatBytes = (bytes: number): string => {
@@ -47,7 +47,7 @@ function TunnelItem({ tunnel, state, stats, onToggle, onDelete }: TunnelItemProp
             <View style={styles.tunnelHeader}>
                 <Text style={styles.tunnelName}>{tunnel.name}</Text>
                 <View style={styles.tunnelState}>
-                    <Text style={styles.stateEmoji}>{stateLabels[state].emoji}</Text>
+                    <Text style={styles.stateBadge}>{stateLabels[state].emoji}</Text>
                     <Text style={styles.stateText}>{stateLabels[state].text}</Text>
                 </View>
             </View>
@@ -66,7 +66,7 @@ function TunnelItem({ tunnel, state, stats, onToggle, onDelete }: TunnelItemProp
                 <View style={styles.statsRow}>
                     <Text style={styles.statText}>↑ {formatBytes(stats.bytesOut)}</Text>
                     <Text style={styles.statText}>↓ {formatBytes(stats.bytesIn)}</Text>
-                    <Text style={styles.statText}>🔗 {stats.activeConnections}</Text>
+                    <Text style={styles.statText}>CONNS: {stats.activeConnections}</Text>
                 </View>
             )}
 
@@ -78,7 +78,7 @@ function TunnelItem({ tunnel, state, stats, onToggle, onDelete }: TunnelItemProp
                     thumbColor={isOpen ? colors.primary : colors.textMuted}
                 />
                 <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-                    <Text style={styles.deleteText}>🗑️</Text>
+                    <Text style={styles.deleteText}>[DEL]</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -269,7 +269,7 @@ export default function TunnelScreen() {
             <ScrollView style={styles.tunnelList}>
                 {tunnels.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyEmoji}>🚇</Text>
+                        <Text style={styles.emptyBadge}>[TUNNEL]</Text>
                         <Text style={styles.emptyText}>No tunnels yet</Text>
                         <Text style={styles.emptySubtext}>
                             Create a tunnel to forward ports over P2P

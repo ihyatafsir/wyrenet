@@ -30,13 +30,13 @@ import {
 import { getUnifiedProtocol } from '../network/UnifiedProtocolManager';
 
 // Stealth score indicators
-const STEALTH_DOTS = ['⬛', '🟫', '🟨', '🟩', '🟢'];
+const STEALTH_DOTS = ['[0]', '[1]', '[2]', '[3]', '[OK]'];
 const METHOD_ICONS: Record<MaladhMethod, string> = {
     hajar: '🪨',
-    ramad: '🔥',
-    qina: '🎭',
-    dalil: '🧭',
-    ghayba: '👻',
+    ramad: '[RAMAD]',
+    qina: '[QINA]',
+    dalil: '[DALIL]',
+    ghayba: '[GHAYBA]',
 };
 
 function StealthScoreBar({ score }: { score: number }) {
@@ -180,7 +180,7 @@ export default function MaladhScreen() {
         const openTime = new Date(rendezvous.windowStart).toLocaleTimeString();
         Alert.alert(
             'غَيْبَة مَوْعِد',
-            `Next rendezvous:\n⏰ ${openTime}\n🚪 Port ${rendezvous.port}\n⏱️ 60s window`,
+            `Next rendezvous:\n[TIME] ${openTime}\n[PORT] Port ${rendezvous.port}\n[WIN] 60s window`,
         );
     }, [ghaybaSecret]);
 
@@ -203,7 +203,7 @@ export default function MaladhScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.headerIcon}>🕶️</Text>
+                    <Text style={styles.headerIcon}>[STEALTH]</Text>
                     <View>
                         <Text style={styles.title}>مَلَاذ</Text>
                         <Text style={styles.subtitle}>Stealth Discovery</Text>
@@ -222,7 +222,7 @@ export default function MaladhScreen() {
             <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Status Banner */}
                 <View style={[styles.statusBanner, isActive && styles.statusBannerActive]}>
-                    <Text style={styles.statusIcon}>{isActive ? '🛡️' : '👁️'}</Text>
+                    <Text style={styles.statusIcon}>{isActive ? '[SHIELD]' : '[PEER]'}</Text>
                     <Text style={[styles.statusText, isActive && styles.statusTextActive]}>
                         {isActive
                             ? 'Stealth mode ACTIVE — discovery is hidden'
@@ -266,7 +266,7 @@ export default function MaladhScreen() {
                         </Text>
                         {discoveredPeers.map((peer, idx) => (
                             <View key={idx} style={styles.peerCard}>
-                                <Text style={styles.peerIcon}>🔗</Text>
+                                <Text style={styles.peerIcon}>[LINK]</Text>
                                 <View style={styles.peerInfo}>
                                     <Text style={styles.peerId}>{peer.peerId.slice(0, 24)}...</Text>
                                     <Text style={styles.peerEndpoint}>

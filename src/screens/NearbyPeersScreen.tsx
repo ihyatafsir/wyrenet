@@ -66,7 +66,7 @@ function RadarPulse() {
                 />
             ))}
             <View style={styles.radarCenter}>
-                <Text style={styles.radarIcon}>📡</Text>
+                <Text style={styles.radarIcon}>[SCAN]</Text>
             </View>
         </View>
     );
@@ -215,7 +215,7 @@ export default function NearbyPeersScreen() {
                 </TouchableOpacity>
             ) : (
                 <TouchableOpacity style={styles.scanButton} onPress={handleStartScan}>
-                    <Text style={styles.scanIcon}>📡</Text>
+                    <Text style={styles.scanIcon}>[SCAN]</Text>
                     <Text style={styles.scanText}>Scan for Nearby Peers</Text>
                 </TouchableOpacity>
             )}

@@ -14,7 +14,10 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
+  Linking,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   IHYA_BOOKS,
   SCHOLAR_CHANNELS,
@@ -36,6 +39,51 @@ export default function LibraryScreen() {
   const [activeIhyaBook, setActiveIhyaBook] = useState<BookItem | null>(null);
   const [activeChannel, setActiveChannel] = useState<ScholarChannel | null>(null);
 
+  const handleDownloadEpub = async (book: CorpusBook) => {
+    const targetUrl = `http://10.0.2.2:5190${book.downloadUrl}`;
+    try {
+      const supported = await Linking.canOpenURL(targetUrl);
+      if (supported) {
+        await Linking.openURL(targetUrl);
+      } else {
+        Alert.alert(
+          "EPUB Endpoint",
+          `Direct Endpoint:\n${targetUrl}\n\nSHA-256:\n${book.sha256}`
+        );
+      }
+    } catch {
+      Alert.alert(
+        "EPUB Download Endpoint",
+        `Endpoint: ${targetUrl}\nFile: ${book.filename}`
+      );
+    }
+  };
+
+  const handleBroadcastToChannel = async (book: CorpusBook) => {
+    try {
+      const channelTarget = book.channelId.replace("chan-", "");
+      const newMsg = {
+        id: `corpus_${Date.now()}`,
+        sender: "maktaba-seeder",
+        avatar: "KB",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        content: `[EPUB ${book.version.toUpperCase()}] ${book.title}\nAuthor: ${book.author}\nEdition: ${book.edition}\nSize: ${book.sizeMb} | Hash: ${(book.sha256 || "").substring(0, 16)}...\nDownload: ${book.downloadUrl}`,
+        channelId: channelTarget,
+      };
+
+      const stored = await AsyncStorage.getItem("@wyrenet_chat_messages");
+      const list = stored ? JSON.parse(stored) : [];
+      list.push(newMsg);
+      await AsyncStorage.setItem("@wyrenet_chat_messages", JSON.stringify(list));
+
+      Alert.alert(
+        "Mesh Broadcast Successful",
+        `Broadcasted "${book.title}" to channel #${channelTarget}. All local mesh peers will synchronize this volume.`
+      );
+    } catch {
+      Alert.alert("Broadcast Error", "Could not broadcast book to channel.");
+    }
+  };
   const quarters = ['All', 'Worship', 'Daily Life', 'Vices', 'Virtues'];
 
   // Filter Corpus Books (246 authenticated v4 & v5 masterworks)
@@ -380,12 +428,35 @@ export default function LibraryScreen() {
 
             <View style={styles.sectionDivider} />
 
+            {/* ACTION BUTTONS */}
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity
+                style={[styles.modalActionBtn, styles.downloadBtn]}
+                onPress={() => activeCorpusBook && handleDownloadEpub(activeCorpusBook)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.downloadBtnText}>[DOWNLOAD / OPEN EPUB]</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalActionBtn, styles.broadcastBtn]}
+                onPress={() => activeCorpusBook && handleBroadcastToChannel(activeCorpusBook)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.broadcastBtnText}>[BROADCAST TO MESH]</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.sectionDivider} />
+
             <Text style={styles.sectionHeader}>SOVEREIGN L1 ANCHOR SPECIFICATION:</Text>
             <View style={styles.l1Box}>
               <Text style={styles.l1Code}>BLOCKCHAIN: Avalanche Subnet 51950</Text>
               <Text style={styles.l1Code}>SEAL: ZBAT_THAQB_L1_SEALED</Text>
               <Text style={styles.l1Code}>FORMAT: Authentic EPUB 3.0 / XHTML Strict</Text>
-              <Text style={styles.l1Code}>VOCABULARY: AynEngine Epistemic Lexicon</Text>
+              <Text style={styles.l1Code}>BLOCK HEIGHT: #{activeCorpusBook?.blockHeight || 850}</Text>
+              <Text style={styles.l1Code}>SHA-256: {activeCorpusBook?.sha256}</Text>
+              <Text style={styles.l1Code} numberOfLines={1}>TX HASH: {activeCorpusBook?.txHash}</Text>
             </View>
           </ScrollView>
         </View>
@@ -868,6 +939,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  modalActionBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  downloadBtn: {
+    backgroundColor: '#00f59b',
+    borderColor: '#00f59b',
+  },
+  downloadBtnText: {
+    color: '#07090e',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  broadcastBtn: {
+    backgroundColor: '#161b22',
+    borderColor: 'rgba(0, 245, 155, 0.4)',
+  },
+  broadcastBtnText: {
+    color: '#00f59b',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   sectionDivider: {
     height: 1,

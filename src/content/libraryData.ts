@@ -499,6 +499,9 @@ export interface CorpusBook {
   category: string;
   channelId: string;
   sizeMb: string;
+  sha256?: string;
+  txHash?: string;
+  blockHeight?: number;
   version: 'v4' | 'v5';
   edition: string;
   edition_format: string;
