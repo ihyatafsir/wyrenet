@@ -1011,9 +1011,17 @@ ${challengeObj.message.length}${challengeObj.message}`;
   }
 
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    const stat = fs.statSync(filePath);
     const ext = path.extname(filePath).toLowerCase();
-    const mime = MIME_TYPES[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': mime });
+    const mime = ext === '.apk' ? 'application/vnd.android.package-archive' : (MIME_TYPES[ext] || 'application/octet-stream');
+    const headers = {
+      'Content-Type': mime,
+      'Content-Length': stat.size
+    };
+    if (ext === '.apk') {
+      headers['Content-Disposition'] = 'attachment; filename="wyrenet.apk"';
+    }
+    res.writeHead(200, headers);
     fs.createReadStream(filePath).pipe(res);
     return;
   }
