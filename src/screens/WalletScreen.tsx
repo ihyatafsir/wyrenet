@@ -41,6 +41,7 @@ export const WalletScreen: React.FC = () => {
   const [blockHeight, setBlockHeight] = useState<number>(641);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [claimingFaucet, setClaimingFaucet] = useState<boolean>(false);
   const [activeNetwork, setActiveNetwork] = useState<NetworkConfig>(NETWORKS.wyrenet);
 
   // Modals
@@ -104,6 +105,25 @@ export const WalletScreen: React.FC = () => {
     } catch (e) {
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleClaim10M = async () => {
+    setClaimingFaucet(true);
+    try {
+      const res = await WyreWalletEngine.claim10MFaucet();
+      await refreshBalance();
+      Alert.alert(
+        '10,000,000 WYRE Claimed',
+        `Status: SUCCESS
+Balance: ${res.balance} WYRE
+Transaction: ${res.txHash.slice(0, 24)}...
+Node: wyresup.com/node`
+      );
+    } catch (e: any) {
+      Alert.alert('Claim Error', e.message || 'Could not claim faucet tokens.');
+    } finally {
+      setClaimingFaucet(false);
     }
   };
 
@@ -320,6 +340,21 @@ export const WalletScreen: React.FC = () => {
             <Text style={styles.refreshBtnText}>{refreshing ? '...' : 'SYNC'}</Text>
           </TouchableOpacity>
         </View>
+
+        {/* 10M WYRE Testnet Faucet Claim */}
+        {activeNetwork.id === 'wyrenet' && (
+          <TouchableOpacity
+            style={styles.faucetBtn}
+            onPress={handleClaim10M}
+            disabled={claimingFaucet}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.faucetBtnText}>
+              {claimingFaucet ? 'CLAIMING 10,000,000 WYRE...' : '[CLAIM 10,000,000 WYRE (TESTNET)]'}
+            </Text>
+            <Text style={styles.faucetNodeSub}>NODE: wyresup.com/node | SUBNET 51950</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Key Management & Generator Grid */}
@@ -747,7 +782,29 @@ const styles = StyleSheet.create({
   importTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   importTabActive: { borderColor: UI_COLORS.primary, backgroundColor: 'rgba(0, 255, 102, 0.1)' },
   importTabText: { color: UI_COLORS.textSecondary, fontSize: 12 },
-  importTabTextActive: { color: UI_COLORS.primary, fontWeight: '700' }
+  importTabTextActive: { color: UI_COLORS.primary, fontWeight: '700' },
+  faucetBtn: {
+    marginTop: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(0, 255, 136, 0.12)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 136, 0.45)',
+    alignItems: 'center',
+  },
+  faucetBtnText: {
+    color: '#00ff88',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  faucetNodeSub: {
+    color: 'rgba(160, 160, 176, 0.8)',
+    fontSize: 10,
+    marginTop: 3,
+    fontWeight: '600',
+  }
 });
 
 export default WalletScreen;

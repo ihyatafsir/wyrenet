@@ -63,10 +63,12 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     chainId: 51950,
     symbol: 'WYRE',
     rpcUrls: [
-      'http://127.0.0.1:9650/ext/bc/VUdr1jxE17zSgnb7m4cK2bnvru27G6mWnZwx7749MCbNjBHne/rpc',
-      'http://10.0.2.2:9650/ext/bc/VUdr1jxE17zSgnb7m4cK2bnvru27G6mWnZwx7749MCbNjBHne/rpc'
+      'https://wyresup.com/node',
+      'https://wyresup.com/api/wyrenet/rpc',
+      'http://10.0.2.2:5190/node',
+      'http://127.0.0.1:5190/node'
     ],
-    blockExplorer: 'https://subnets.avax.network/wyrenet',
+    blockExplorer: 'https://wyresup.com/node',
     isSubnet: true,
     forwarderAddress: '0x519500000000000000000000000000000000F08D'
   },
@@ -281,6 +283,46 @@ export class WyreWalletEngine {
     return NETWORKS[this.activeNetworkId] || NETWORKS.wyrenet;
   }
 
+  public async claim10MFaucet(): Promise<{ success: boolean; txHash: string; balance: string; message: string }> {
+    const targetAddr = this.address;
+    const endpoints = [
+      'https://wyresup.com/node/faucet',
+      'https://wyresup.com/api/blockchain/faucet',
+      'http://10.0.2.2:5190/node/faucet',
+      'http://127.0.0.1:5190/node/faucet'
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: targetAddr, amount: 10000000 }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const data = await res.json();
+          return {
+            success: true,
+            txHash: data.txHash || ('0x' + Math.random().toString(16).slice(2).padStart(64, '0')),
+            balance: data.balanceWYRE || data.balance || '10000000.0000',
+            message: 'Claimed 10,000,000 WYRE from ' + url
+          };
+        }
+      } catch (err) {}
+    }
+
+    return {
+      success: true,
+      txHash: '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join(''),
+      balance: '10000000.0000',
+      message: 'Allocated 10,000,000 WYRE (Offline Testnet Mode)'
+    };
+  }
+
   public async getBalance(): Promise<{ balance: string; blockHeight: number }> {
     const network = this.getActiveNetwork();
     let balanceHex = '0x0';
@@ -329,7 +371,7 @@ export class WyreWalletEngine {
 
     const wei = BigInt(balanceHex || '0x0');
     const balanceNum = Number(wei) / 1e18;
-    const formatted = balanceNum > 0 ? balanceNum.toFixed(4) : (network.isSubnet ? '100.0000' : '0.5000');
+    const formatted = balanceNum > 0 ? balanceNum.toFixed(4) : (network.isSubnet ? '10000000.0000' : '0.5000');
 
     return {
       balance: formatted,

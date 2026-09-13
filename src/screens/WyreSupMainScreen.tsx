@@ -342,11 +342,20 @@ export default function WyreSupMainScreen() {
 
         <View style={styles.topbarRight}>
           <TouchableOpacity
-            style={styles.membersBtn}
+            style={styles.nodeStatusPill}
             onPress={() => navigation.navigate("Wallet")}
             activeOpacity={0.7}
           >
-            <Text style={styles.membersBtnText}>PEERS</Text>
+            <View style={styles.nodeStatusDot} />
+            <Text style={styles.nodeStatusText}>wyresup.com/node</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.vaultHeaderBtn}
+            onPress={() => navigation.navigate("Wallet")}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.vaultHeaderBtnText}>VAULT</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -727,6 +736,46 @@ const styles = StyleSheet.create({
   topbarRight: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  nodeStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 30,
+    paddingHorizontal: 7,
+    borderRadius: 6,
+    backgroundColor: "rgba(0, 245, 155, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.3)",
+    marginRight: 6,
+  },
+  nodeStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#00f59b",
+    marginRight: 5,
+  },
+  nodeStatusText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#00f59b",
+    letterSpacing: 0.3,
+  },
+  vaultHeaderBtn: {
+    height: 30,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: "rgba(22, 27, 34, 0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 245, 155, 0.25)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  vaultHeaderBtnText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#00f59b",
+    letterSpacing: 0.5,
   },
   membersBtn: {
     height: 32,

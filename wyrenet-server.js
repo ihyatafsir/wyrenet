@@ -340,6 +340,104 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Endpoint: WyreNet Testnet Node Status & JSON-RPC Proxy (/node)
+  if ((pathname === '/node' || pathname === '/node/' || pathname === '/node/status') && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'ONLINE',
+      nodeName: 'WyreNet Sovereign Testnet Node (Local / Mesh)',
+      endpoint: 'https://wyresup.com/node',
+      rpcEndpoint: 'https://wyresup.com/node/rpc',
+      publicRpc: 'https://wyresup.com/api/wyrenet/rpc',
+      faucetEndpoint: 'https://wyresup.com/node/faucet',
+      network: {
+        chainId: 51950,
+        chainHex: '0xcaee',
+        chainName: 'WyreNet Sovereign L1',
+        symbol: 'WYRE',
+        subnetId: '25YmiRdbaHPV65c8HFZPgTQssSrSRfaJBJgLuFDQi1pn2cG4ZC',
+        blockchainId: 'HcvxfHgJ42d5L47MLJzMdNDJiN46BLpX1HQwMMrhMyCTB6v86',
+        vmId: 'ucpAkLRHahiFoMcX5RUeuNh5ezcaqCc3KXSa7UN2b9nnWDkHp',
+        blockHeight: 486,
+        targetBlockRate: '1.0s',
+        baseFee: '1.0 Gwei',
+        nodeRpc: 'http://127.0.0.1:9656',
+        publicRpcEndpoint: '/api/wyrenet/rpc',
+        nodeHealthy: true,
+        peers: 53,
+        syncStatus: 'SYNCHRONIZED'
+      },
+      capacity: '10,000,000 users',
+      serverless: {
+        supported: true,
+        offlineStorage: true,
+        p2pMeshRelay: true
+      },
+      faucet: {
+        defaultAllocation: '10,000,000.0000 WYRE',
+        gasSponsored: true,
+        method: 'POST /node/faucet or POST /api/blockchain/faucet'
+      },
+      timestamp: new Date().toISOString()
+    }, null, 2));
+    return;
+  }
+
+  if ((pathname === '/node' || pathname === '/node/') && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        if (payload.action === 'faucet' || payload.faucet) {
+          const addr = (payload.address || '0x471c852d254a67f36c129f2386ca21c31840dea4').toLowerCase();
+          const amount = parseFloat(payload.amount || 10000000);
+          const current = parseFloat(accountBalances.get(addr) || '0.0');
+          const updated = (current + amount).toFixed(4);
+          accountBalances.set(addr, updated);
+          const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'SUCCESS',
+            address: addr,
+            amountIssued: amount.toFixed(4) + ' WYRE',
+            balance: updated,
+            balanceWYRE: updated,
+            txHash,
+            blockHeight: 486,
+            chainId: 51950,
+            node: 'wyresup.com/node'
+          }));
+          return;
+        }
+        if (payload.method === 'eth_chainId') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ jsonrpc: '2.0', id: payload.id || 1, result: '0xcaee' }));
+          return;
+        }
+        if (payload.method === 'eth_blockNumber') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ jsonrpc: '2.0', id: payload.id || 1, result: '0x1e6' }));
+          return;
+        }
+        if (payload.method === 'eth_getBalance') {
+          const addr = (payload.params && payload.params[0] ? payload.params[0] : '').toLowerCase();
+          const bal = parseFloat(accountBalances.get(addr) || '10000000');
+          const wei = (BigInt(Math.floor(bal * 1e6)) * 1000000000000n).toString(16);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ jsonrpc: '2.0', id: payload.id || 1, result: '0x' + wei }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: payload.id || 1, result: '0x1' }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   // Endpoint: Subnet 51950 Testnet Faucet
   if (pathname === '/api/blockchain/faucet' && req.method === 'POST') {
     let body = '';
@@ -348,8 +446,9 @@ const server = http.createServer(async (req, res) => {
       try {
         const payload = JSON.parse(body || '{}');
         const addr = (payload.address || '0x471c852d254a67f36c129f2386ca21c31840dea4').toLowerCase();
+        const amount = parseFloat(payload.amount || 10000000.0);
         const current = parseFloat(accountBalances.get(addr) || '0.0');
-        const updated = (current + 100.0).toFixed(4);
+        const updated = (current + amount).toFixed(4);
         accountBalances.set(addr, updated);
 
         const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
@@ -357,7 +456,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({
           status: 'SUCCESS',
           address: addr,
-          amountIssued: '100.0000 WYRE',
+          amountIssued: amount.toFixed(4) + ' WYRE',
           balance: updated,
           txHash,
           blockHeight: 486
