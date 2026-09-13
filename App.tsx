@@ -1,3 +1,4 @@
+import WyreSupMainScreen from "./src/screens/WyreSupMainScreen";
 // Crypto polyfill - MUST be first import
 import "react-native-get-random-values";
 
@@ -238,7 +239,7 @@ export default function App() {
           }}
         >
           <Stack.Navigator
-            initialRouteName={hasIdentity ? "Main" : "Welcome"}
+            initialRouteName="Main"
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: "#050510" },
@@ -255,7 +256,7 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
-            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="Main" component={WyreSupMainScreen} />
             <Stack.Screen
               name="Wallet"
               component={WalletScreen}
