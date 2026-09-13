@@ -1,152 +1,193 @@
 // Crypto polyfill - MUST be first import
-import 'react-native-get-random-values';
+import "react-native-get-random-values";
 
 /**
- * WyreNet - Sovereign Mesh & Avalanche L1 Subnet Blockchain Edition
- * وايرنِت
- * Zero Domain Dependency - Native Embedded Crypto Wallet
+ * WyreNet / WyreSup - Sovereign P2P Mesh & Avalanche L1 Subnet
+ * وايرنِت / وايرصَب
+ * Identical Visual Geometry to WyreSup Main Page
  */
 
-import React, { useState, useEffect } from 'react';
-import { StatusBar, View, StyleSheet, Text } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from "react";
+import { StatusBar, View, StyleSheet, Text, TouchableOpacity, ScrollView } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import RootErrorBoundary from './src/ui/RootErrorBoundary';
-import WelcomeScreen from './src/screens/WelcomeScreen';
-import WalletScreen from './src/screens/WalletScreen';
-import ContactsScreen from './src/screens/ContactsScreen';
-import ChatScreen from './src/screens/ChatScreen';
-import FeedScreen from './src/screens/FeedScreen';
-import ConnectionRequestScreen from './src/screens/ConnectionRequestScreen';
-import NearbyPeersScreen from './src/screens/NearbyPeersScreen';
-import TestRunnerScreen from './src/screens/TestRunnerScreen';
-import P2PConnectionScreen from './src/screens/P2PConnectionScreen';
-import TunnelScreen from './src/screens/TunnelScreen';
-import NaghamScreen from './src/screens/NaghamScreen';
-import MaladhScreen from './src/screens/MaladhScreen';
-import LibraryScreen from './src/screens/LibraryScreen';
-import { deserializeIdentity, WyreSUpIdentity } from './src/utils/Identity';
+import RootErrorBoundary from "./src/ui/RootErrorBoundary";
+import WelcomeScreen from "./src/screens/WelcomeScreen";
+import WalletScreen from "./src/screens/WalletScreen";
+import ContactsScreen from "./src/screens/ContactsScreen";
+import ChatScreen from "./src/screens/ChatScreen";
+import FeedScreen from "./src/screens/FeedScreen";
+import ConnectionRequestScreen from "./src/screens/ConnectionRequestScreen";
+import NearbyPeersScreen from "./src/screens/NearbyPeersScreen";
+import TestRunnerScreen from "./src/screens/TestRunnerScreen";
+import P2PConnectionScreen from "./src/screens/P2PConnectionScreen";
+import TunnelScreen from "./src/screens/TunnelScreen";
+import NaghamScreen from "./src/screens/NaghamScreen";
+import MaladhScreen from "./src/screens/MaladhScreen";
+import LibraryScreen from "./src/screens/LibraryScreen";
+import { deserializeIdentity, WyreSUpIdentity } from "./src/utils/Identity";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Typographic Tab bar labels (Zero Emojis)
+// Tab bar icons identical to WyreSup
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const codes: Record<string, string> = {
-    Wallet: '[W]',
-    P2P: '[P2P]',
-    Tunnel: '[TUN]',
-    Voice: '[VOX]',
-    Stealth: '[STL]',
-    Nearby: '[NRB]',
-    Library: '[LIB]',
-    Contacts: '[USR]',
-    Requests: '[REQ]',
-    Feed: '[FED]',
-    Tests: '[TST]',
-    Settings: '[CFG]',
+  const icons: Record<string, string> = {
+    P2P: "🌐",
+    Nearby: "📡",
+    Contacts: "👥",
+    Requests: "🔔",
+    Feed: "📝",
+    Tests: "🧪",
+    Settings: "⚙️",
   };
   return (
-    <Text style={{ fontSize: 11, fontWeight: '800', color: focused ? '#00FF66' : '#666666', fontFamily: 'monospace' }}>
-      {codes[name] || '[-]'}
+    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>
+      {icons[name] || "•"}
     </Text>
   );
 }
 
-// Settings Screen with Avalanche Subnet 51950 Configuration
-function SettingsScreen() {
+// Settings Screen with Avalanche Subnet 51950 & Sovereign Feature Hub
+function SettingsScreen({ navigation }: any) {
   const [identity, setIdentity] = useState<WyreSUpIdentity | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem('@wyrenet_identity').then(async (data) => {
+    AsyncStorage.getItem("@wyrenet_identity").then(async (data) => {
       if (data) {
         setIdentity(deserializeIdentity(data));
       } else {
-        const legacy = await AsyncStorage.getItem('wyresup_identity');
+        const legacy = await AsyncStorage.getItem("wyresup_identity");
         if (legacy) setIdentity(deserializeIdentity(legacy));
       }
     });
   }, []);
 
   return (
-    <View style={styles.settingsContainer}>
-      <Text style={styles.settingsTitle}>WyreNet Settings</Text>
-      <Text style={styles.settingsSubtitle}>Sovereign L1 Blockchain Subnet 51950 (Testnet)</Text>
+    <ScrollView style={styles.settingsContainer}>
+      <Text style={styles.settingsTitle}>Settings</Text>
       
-      <View style={styles.identityCard}>
-        <Text style={styles.identityLabel}>Blockchain Subnet ID</Text>
-        <Text style={styles.identityValue}>2HmQcbYmNdjDPsA53R4hThwr2Ec4UTz1pe5MvATFSkgGr1CDtU</Text>
-        
-        <Text style={styles.identityLabel}>Chain ID</Text>
-        <Text style={styles.identityValue}>51950 (WYRE Token)</Text>
+      {identity && (
+        <View style={styles.idCard}>
+          <Text style={styles.idLabel}>Your WyreSup ID:</Text>
+          <Text style={styles.idValue}>{identity.fullId}</Text>
+        </View>
+      )}
 
-        <Text style={styles.identityLabel}>Avalanche Fuji Testnet</Text>
-        <Text style={styles.identityValue}>43113 (AVAX Token)</Text>
+      <Text style={[styles.sectionHeading, { marginTop: 24 }]}>Sovereign Ecosystem</Text>
+      <View style={styles.featureGrid}>
+        <TouchableOpacity
+          style={styles.featureCard}
+          onPress={() => navigation.navigate("Wallet")}
+        >
+          <Text style={styles.featureIcon}>💼</Text>
+          <Text style={styles.featureName}>خَزِينَة (Wallet)</Text>
+          <Text style={styles.featureSub}>Avalanche Subnet 51950</Text>
+        </TouchableOpacity>
 
-        <Text style={styles.identityLabel}>Zero-Domain Mode</Text>
-        <Text style={[styles.identityValue, { color: '#00FF66' }]}>ACTIVE (Zero Domain Dependencies)</Text>
+        <TouchableOpacity
+          style={styles.featureCard}
+          onPress={() => navigation.navigate("Tunnel")}
+        >
+          <Text style={styles.featureIcon}>🚇</Text>
+          <Text style={styles.featureName}>نَفَق (Tunnel)</Text>
+          <Text style={styles.featureSub}>P2P Port Forwarding</Text>
+        </TouchableOpacity>
 
-        {identity && (
-          <>
-            <Text style={styles.identityLabel}>Your Peer ID</Text>
-            <Text style={styles.identityValue}>{identity.peerId}</Text>
-            <Text style={styles.identityLabel}>Display Name</Text>
-            <Text style={styles.identityValue}>{identity.displayName}</Text>
-          </>
-        )}
+        <TouchableOpacity
+          style={styles.featureCard}
+          onPress={() => navigation.navigate("Voice")}
+        >
+          <Text style={styles.featureIcon}>🎵</Text>
+          <Text style={styles.featureName}>نَغَم (Nagham)</Text>
+          <Text style={styles.featureSub}>DTMF Voice Channel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.featureCard}
+          onPress={() => navigation.navigate("Stealth")}
+        >
+          <Text style={styles.featureIcon}>🕶️</Text>
+          <Text style={styles.featureName}>مَلَاذ (Maladh)</Text>
+          <Text style={styles.featureSub}>Stealth Discovery</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.featureCard}
+          onPress={() => navigation.navigate("Library")}
+        >
+          <Text style={styles.featureIcon}>📚</Text>
+          <Text style={styles.featureName}>مَكْتَبَة (Library)</Text>
+          <Text style={styles.featureSub}>Decentralized Content</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+
+      <Text style={[styles.sectionHeading, { marginTop: 20 }]}>Network Specification</Text>
+      <View style={styles.specCard}>
+        <Text style={styles.specLabel}>Blockchain Subnet ID</Text>
+        <Text style={styles.specValue}>2HmQcbYmNdjDPsA53R4hThwr2Ec4UTz1pe5MvATFSkgGr1CDtU</Text>
+        
+        <Text style={styles.specLabel}>Chain ID</Text>
+        <Text style={styles.specValue}>51950 (WYRE Token)</Text>
+
+        <Text style={styles.specLabel}>Avalanche Fuji Testnet</Text>
+        <Text style={styles.specValue}>43113 (AVAX Token)</Text>
+
+        <Text style={styles.specLabel}>Zero-Domain Mode</Text>
+        <Text style={[styles.specValue, { color: "#00ff88" }]}>ACTIVE (P2P Mesh + Avalanche L1)</Text>
+      </View>
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
 
-// Main Tab Navigator
+// Main Tab Navigator matching WyreSup geometry
 function MainTabs() {
+  const [selectedPeer, setSelectedPeer] = useState<any>(null);
+
+  if (selectedPeer) {
+    return (
+      <ChatScreen
+        peerId={selectedPeer.id}
+        peerName={selectedPeer.id.split("@")[0]}
+      />
+    );
+  }
+
   return (
     <Tab.Navigator
+      initialRouteName="P2P"
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
+        headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#050B07',
-          borderTopColor: '#00FF6633',
-          borderTopWidth: 1,
+          backgroundColor: "#050510",
+          borderTopColor: "#1a1a2e",
           height: 60,
           paddingBottom: 6,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: '#00FF66',
-        tabBarInactiveTintColor: '#666',
+        tabBarActiveTintColor: "#00ff88",
+        tabBarInactiveTintColor: "#666",
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '700',
+          fontWeight: "600",
         },
-        headerStyle: {
-          backgroundColor: '#050B07',
-          borderBottomColor: '#00FF6633',
-          borderBottomWidth: 1,
-        },
-        headerTintColor: '#00FF66',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          fontSize: 15,
-        },
+        tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
       })}
     >
-      <Tab.Screen name="Wallet" component={WalletScreen} options={{ title: 'Wallet (خَزِينَة)' }} />
-      <Tab.Screen name="Library" component={LibraryScreen} options={{ title: 'Maktaba (مَكْتَبَة)' }} />
-      <Tab.Screen name="P2P" component={P2PConnectionScreen} options={{ title: 'WyreNet Mesh' }} />
-      <Tab.Screen name="Tunnel" component={TunnelScreen} options={{ title: 'Nafaq Tunnel' }} />
-      <Tab.Screen name="Voice" component={NaghamScreen} options={{ title: 'Nagham DTMF' }} />
-      <Tab.Screen name="Stealth" component={MaladhScreen} options={{ title: 'Maladh Stealth' }} />
-      <Tab.Screen name="Nearby" component={NearbyPeersScreen} options={{ title: 'Nearby Mesh' }} />
-      <Tab.Screen name="Contacts" component={ContactsScreen} options={{ title: 'Contacts' }} />
-      <Tab.Screen name="Requests" component={ConnectionRequestScreen} options={{ title: 'Requests' }} />
-      <Tab.Screen name="Feed" component={FeedScreen} options={{ title: 'Feed' }} />
-      <Tab.Screen name="Tests" component={TestRunnerScreen} options={{ title: 'Diagnostics' }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Tab.Screen name="P2P" component={P2PConnectionScreen} />
+      <Tab.Screen name="Nearby" component={NearbyPeersScreen} />
+      <Tab.Screen name="Contacts">
+        {() => <ContactsScreen onSelectPeer={setSelectedPeer} />}
+      </Tab.Screen>
+      <Tab.Screen name="Requests" component={ConnectionRequestScreen} />
+      <Tab.Screen name="Feed" component={FeedScreen} />
+      <Tab.Screen name="Tests" component={TestRunnerScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
 }
@@ -161,7 +202,7 @@ export default function App() {
 
   const checkIdentity = async () => {
     try {
-      const identity = (await AsyncStorage.getItem('@wyrenet_identity')) || (await AsyncStorage.getItem('wyresup_identity'));
+      const identity = (await AsyncStorage.getItem("@wyrenet_identity")) || (await AsyncStorage.getItem("wyresup_identity"));
       setHasIdentity(!!identity);
     } catch {
       setHasIdentity(false);
@@ -172,17 +213,35 @@ export default function App() {
     <RootErrorBoundary>
       {hasIdentity === null ? (
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Initializing WyreNet...</Text>
+          <Text style={styles.loadingText}>وايرصَب</Text>
         </View>
       ) : (
         <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor="#050B07" />
-        <NavigationContainer>
+        <StatusBar barStyle="light-content" backgroundColor="#050510" />
+        <NavigationContainer
+          theme={{
+            dark: true,
+            colors: {
+              primary: "#00ff88",
+              background: "#050510",
+              card: "#1a1a2e",
+              text: "#ffffff",
+              border: "#1a1a2e",
+              notification: "#00ff88",
+            },
+            fonts: {
+              regular: { fontFamily: "System", fontWeight: "400" },
+              medium: { fontFamily: "System", fontWeight: "500" },
+              bold: { fontFamily: "System", fontWeight: "700" },
+              heavy: { fontFamily: "System", fontWeight: "900" },
+            },
+          }}
+        >
           <Stack.Navigator
-            initialRouteName={hasIdentity ? 'Main' : 'Welcome'}
+            initialRouteName={hasIdentity ? "Main" : "Welcome"}
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: '#050B07' },
+              contentStyle: { backgroundColor: "#050510" },
             }}
           >
             <Stack.Screen name="Welcome">
@@ -191,20 +250,75 @@ export default function App() {
                   {...props}
                   onComplete={() => {
                     setHasIdentity(true);
-                    props.navigation.replace('Main');
+                    props.navigation.replace("Main");
                   }}
                 />
               )}
             </Stack.Screen>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen
+              name="Wallet"
+              component={WalletScreen}
+              options={{
+                headerShown: true,
+                title: "خَزِينَة (Sovereign Wallet)",
+                headerStyle: { backgroundColor: "#050510" },
+                headerTintColor: "#00ff88",
+                headerTitleStyle: { fontWeight: "bold" },
+              }}
+            />
+            <Stack.Screen
+              name="Tunnel"
+              component={TunnelScreen}
+              options={{
+                headerShown: true,
+                title: "نَفَق (Nafaq Tunnel)",
+                headerStyle: { backgroundColor: "#050510" },
+                headerTintColor: "#00ff88",
+                headerTitleStyle: { fontWeight: "bold" },
+              }}
+            />
+            <Stack.Screen
+              name="Voice"
+              component={NaghamScreen}
+              options={{
+                headerShown: true,
+                title: "نَغَم (Nagham Voice)",
+                headerStyle: { backgroundColor: "#050510" },
+                headerTintColor: "#00ff88",
+                headerTitleStyle: { fontWeight: "bold" },
+              }}
+            />
+            <Stack.Screen
+              name="Stealth"
+              component={MaladhScreen}
+              options={{
+                headerShown: true,
+                title: "مَلَاذ (Maladh Stealth)",
+                headerStyle: { backgroundColor: "#050510" },
+                headerTintColor: "#00ff88",
+                headerTitleStyle: { fontWeight: "bold" },
+              }}
+            />
+            <Stack.Screen
+              name="Library"
+              component={LibraryScreen}
+              options={{
+                headerShown: true,
+                title: "مَكْتَبَة (Maktaba)",
+                headerStyle: { backgroundColor: "#050510" },
+                headerTintColor: "#00ff88",
+                headerTitleStyle: { fontWeight: "bold" },
+              }}
+            />
+            <Stack.Screen
               name="Chat"
               component={ChatScreen}
               options={{
                 headerShown: true,
-                headerStyle: { backgroundColor: '#050B07' },
-                headerTintColor: '#00FF66',
-                headerTitleStyle: { fontWeight: 'bold' },
+                headerStyle: { backgroundColor: "#050510" },
+                headerTintColor: "#00ff88",
+                headerTitleStyle: { fontWeight: "bold" },
               }}
             />
           </Stack.Navigator>
@@ -218,49 +332,92 @@ export default function App() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#050B07',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#050510",
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
-    color: '#00FF66',
-    fontSize: 16,
-    fontFamily: 'monospace',
+    fontSize: 48,
+    fontWeight: "700",
+    color: "#00ff88",
   },
   settingsContainer: {
     flex: 1,
-    backgroundColor: '#050B07',
+    backgroundColor: "#050510",
     padding: 20,
   },
   settingsTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#00FF66',
-    marginBottom: 4,
-  },
-  settingsSubtitle: {
-    fontSize: 13,
-    color: '#8492A6',
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#fff",
     marginBottom: 20,
   },
-  identityCard: {
-    backgroundColor: '#0A1810',
+  idCard: {
+    backgroundColor: "#1a1a2e",
+    borderRadius: 12,
+    padding: 16,
+  },
+  idLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+  },
+  idValue: {
+    fontSize: 16,
+    color: "#00ff88",
+    fontFamily: "monospace",
+  },
+  sectionHeading: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#888",
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  featureGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  featureCard: {
+    width: "48%",
+    backgroundColor: "#1a1a2e",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(0, 255, 136, 0.15)",
+  },
+  featureIcon: {
+    fontSize: 24,
+    marginBottom: 6,
+  },
+  featureName: {
+    color: "#00ff88",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  featureSub: {
+    color: "#888",
+    fontSize: 10,
+    marginTop: 2,
+  },
+  specCard: {
+    backgroundColor: "#1a1a2e",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#00FF6633',
+    borderColor: "rgba(0, 255, 136, 0.1)",
   },
-  identityLabel: {
-    color: '#8492A6',
+  specLabel: {
+    color: "#888",
     fontSize: 11,
-    fontWeight: '700',
-    marginTop: 10,
-    letterSpacing: 0.5,
+    fontWeight: "700",
+    marginTop: 8,
   },
-  identityValue: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontFamily: 'monospace',
-    marginTop: 3,
+  specValue: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontFamily: "monospace",
+    marginTop: 2,
   },
 });

@@ -639,22 +639,12 @@ export default function P2PConnectionScreen() {
             <View style={styles.header}>
                 <Text style={styles.title}>P2P اِتِّصَال</Text>
                 <View style={styles.statusRow}>
-                    {/* WebSocket status */}
                     <View style={[
-                        styles.wsStatusDot,
+                        styles.statusDot,
                         wsConnected ? styles.connected : styles.disconnected
                     ]} />
                     <Text style={styles.subtitle}>
-                        WS: {wsConnected ? '✓' : '✗'}
-                    </Text>
-                    {/* TCP status */}
-                    <View style={[
-                        styles.wsStatusDot,
-                        tcpConnected ? styles.tcpConnected : styles.disconnected,
-                        { marginLeft: 12 }
-                    ]} />
-                    <Text style={styles.subtitle}>
-                        TCP: {tcpConnected ? '✓' : '✗'}
+                        {wsConnected ? 'Connected to Relay' : 'Offline'}
                     </Text>
                 </View>
             </View>
@@ -691,28 +681,13 @@ export default function P2PConnectionScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* مُسْتَضِيف - Host Mode Section */}
-                <View style={styles.hostSection}>
-                    <TouchableOpacity
-                        style={[styles.hostButton, isHosting && styles.hostButtonActive]}
-                        onPress={toggleHostMode}
-                    >
-                        <Text style={styles.hostButtonText}>
-                            {isHosting ? '🔴 Stop Hosting' : '📡 Host Mode'}
-                        </Text>
-                    </TouchableOpacity>
-                    {hostInfo && (
-                        <Text style={styles.hostInfo}>
-                            {hostInfo.ip}:{hostInfo.port}
-                        </Text>
-                    )}
-                </View>
+
             </View>
 
             {/* Online Peers */}
             <View style={styles.peersCard}>
                 <Text style={styles.sectionTitle}>
-                    شُهُود - Online Peers ({peers.length})
+                    Online Peers ({peers.length}) - شُهُود
                 </Text>
                 {peers.length === 0 ? (
                     <Text style={styles.noPeers}>No peers online yet</Text>
@@ -736,7 +711,7 @@ export default function P2PConnectionScreen() {
 
             {/* Messages */}
             <View style={styles.messagesSection}>
-                <Text style={styles.sectionTitle}>رِسَالَات - Messages</Text>
+                <Text style={styles.sectionTitle}>Messages - رِسَالَات</Text>
                 <ScrollView
                     style={styles.messagesList}
                     ref={messagesEndRef}
@@ -854,6 +829,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 4,
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
     },
     wsStatusDot: {
         width: 8,
