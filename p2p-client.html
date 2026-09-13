@@ -172,6 +172,8 @@
             <!-- Voice & Video Call Action Buttons -->
             <button class="topbar-btn topbar-call-btn" id="btn-topbar-call-voice" title="Start Sovereign WebRTC Voice Call" onclick="startWebRtcCall('voice')"><span style="font-size:10px; font-weight:800;">CALL</span></button>
             <button class="topbar-btn topbar-call-btn" id="btn-topbar-call-video" title="Start Sovereign WebRTC Video Call" onclick="startWebRtcCall('video')"><span style="font-size:10px; font-weight:800;">VID</span></button>
+            <button class="topbar-btn" id="btn-topbar-stream-youtube" title="Watch Party / P2P Stream" style="display:none;"><span style="font-size:10px; font-weight:800; color:var(--matrix-blue);">STREAM</span></button>
+            <span id="tabur-queue-indicator" class="tabur-badge" style="display:none; font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(255, 170, 0, 0.2); color:#ffaa00;">Tabur: 0</span>
             <button class="topbar-btn" id="btn-topbar-maktaba" onclick="openMaktabaModal()" title="Classical Maktaba (v4 &amp; v5 Translated)"><span style="font-size:10px; font-weight:800; color:var(--matrix-gold);">LIB</span></button>
             <!-- Dedicated Web3 Crypto Wallet Button -->
             <button class="topbar-wallet-pill" id="btn-topbar-wallet" onclick="openWalletModal()" title="WyreNet L1 Crypto Wallet">
@@ -675,6 +677,12 @@
           <button class="btn btn-tunnel-action" id="btn-start-p2p-tunnel">
             Nafaq Tunnel (نَفَق)
           </button>
+          <button class="btn btn-secondary" id="btn-profile-voice-call">
+            Voice Call
+          </button>
+          <button class="btn btn-secondary" id="btn-profile-video-call">
+            Video Call
+          </button>
         </div>
       </div>
     </div>
@@ -1043,37 +1051,152 @@
   <script src="app.js?v=1789256000"></script>
   <script src="wyrenet_runtime.js?v=1789256000"></script>
 
-  <!-- WebRTC Bilateral Voice & Video Call Overlay Modal -->
-  <div id="webrtc-call-modal" class="call-overlay-modal" style="display:none;">
-    <div class="call-modal-card">
-      <div class="call-avatar-pulse" id="call-avatar-pulse">
-        <span id="call-modal-icon" style="font-size:32px; font-weight:800; color:var(--matrix-green);">&phone;</span>
-      </div>
-      <h3 id="call-modal-peer-title" style="color:#ffffff; font-size:1.2rem; margin-bottom:4px;">Inbound Sovereign Call</h3>
-      <p id="call-modal-peer-did" style="color:var(--text-muted); font-family:var(--font-mono); font-size:0.75rem; margin-bottom:16px;">did:wyre:0x471c852d...</p>
-      
-      <!-- Video Streams (if video call) -->
-      <div id="call-video-container" style="display:none; margin-bottom:16px; border-radius:12px; overflow:hidden; border:1px solid var(--border-emerald);">
-        <video id="remote-video" autoplay playsinline style="width:100%; max-height:220px; background:#000; display:block;"></video>
-        <video id="local-video" autoplay playsinline muted style="width:90px; height:65px; position:absolute; bottom:120px; right:35px; border-radius:8px; border:2px solid var(--matrix-green); background:#050b07;"></video>
-      </div>
-
-      <div id="call-status-label" style="font-family:var(--font-mono); font-size:0.85rem; color:var(--matrix-green); margin-bottom:16px;">Ringing mesh peer...</div>
-      
-      <!-- Incoming Call Buttons -->
-      <div class="call-btn-row" id="incoming-call-actions">
-        <button class="call-action-btn call-btn-accept" onclick="acceptIncomingCall()">[ACCEPT CALL]</button>
-        <button class="call-action-btn call-btn-decline" onclick="declineIncomingCall()">[DECLINE]</button>
+    <!-- P2P Video & Voice Call Stage Modal -->
+  <div class="modal-overlay" id="modal-active-call">
+    <div class="modal-card video-call-card">
+      <div class="call-stage-header">
+        <div class="call-peer-badge">
+          <span class="call-pulse-dot"></span>
+          <span class="call-peer-name" id="call-active-peer-name">antigravity</span>
+          <span class="call-crypto-badge">MIFTAH // SRTP P2P</span>
+        </div>
+        <div class="call-timer-badge" id="call-duration-timer">00:00</div>
+        <button class="btn-swap-call-views" id="btn-swap-call-views" title="Swap Main / PIP Video Screens">⇄ Swap</button>
+        <button class="modal-close call-stage-close" id="btn-minimize-call" title="Minimize / Close">✕</button>
       </div>
 
-      <!-- Active In-Call Controls -->
-      <div class="call-btn-row" id="active-call-controls" style="display:none;">
-        <button class="call-action-btn call-btn-mute" id="btn-call-mute" onclick="toggleCallMute()">[MUTE MIC]</button>
-        <button class="call-action-btn call-btn-mute" id="btn-call-video-toggle" onclick="toggleCallVideo()">[CAMERA]</button>
-        <button class="call-action-btn call-btn-decline" onclick="endCurrentCall()">[END CALL]</button>
+      <!-- Main Video Grid -->
+      <div class="call-video-grid" id="call-video-grid">
+        <!-- Floating Live Stream Title Banner on Big Screen -->
+        <div class="call-video-title-banner" id="call-video-title-banner" style="display: none;">
+          <span class="stream-badge-pulse">LIVE P2P</span>
+          <span id="call-video-title-text">Live Media Stream</span>
+        </div>
+        <!-- Remote Video Tile -->
+        <div class="video-tile remote-video-tile" id="remote-video-tile">
+          <video id="call-remote-video" autoplay playsinline></video>
+          <audio id="call-remote-audio" autoplay playsinline></audio>
+          <canvas id="call-remote-shaf-canvas" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:8; border-radius:16px; pointer-events:none;"></canvas>
+          <div class="video-avatar-fallback" id="remote-avatar-fallback">
+            <div class="call-large-avatar" id="call-remote-avatar">AG</div>
+            <p class="call-avatar-label" id="call-remote-avatar-name">antigravity</p>
+            <span class="call-avatar-status" id="call-remote-status-text">Direct P2P Encrypted Stream</span>
+            <div class="call-voice-pulse" id="call-voice-pulse" style="display:none;">
+              <span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span>
+            </div>
+          </div>
+          <span class="video-tile-tag" id="remote-video-tag">REMOTE // 1080p OPUS</span>
+        </div>
+
+        <!-- Local Video PIP Tile -->
+        <div class="video-tile local-video-pip" id="local-video-tile">
+          <video id="call-local-video" autoplay playsinline muted></video>
+          <div class="video-avatar-fallback pip-fallback" id="local-avatar-fallback" style="display: none;">
+            <div class="pip-avatar" id="call-local-avatar">ME</div>
+          </div>
+          <span class="video-tile-tag" id="local-video-tag">YOU</span>
+        </div>
+      </div>
+
+      <!-- Live Stream HUD -->
+      <div class="call-hud-bar">
+        <span>Latency: <strong id="call-hud-latency" class="emerald">12ms</strong></span>
+        <span>Cipher: <strong class="emerald">ChaCha20-Poly1305 / SRTP</strong></span>
+        <span>Codec: <strong>Opus 48kHz + VP8</strong></span>
+      </div>
+
+      <!-- Call Controls Dock -->
+      <div class="call-controls-dock">
+        <button class="call-ctrl-btn" id="btn-call-toggle-mic" title="Mute / Unmute Mic">
+          <span class="ctrl-icon" id="call-mic-icon">MIC</span>
+          <span class="ctrl-lbl" id="call-mic-lbl">Mute</span>
+        </button>
+        <button class="call-ctrl-btn" id="btn-call-toggle-cam" title="Turn Camera On / Off">
+          <span class="ctrl-icon" id="call-cam-icon">CAM</span>
+          <span class="ctrl-lbl" id="call-cam-lbl">Camera</span>
+        </button>
+        <button class="call-ctrl-btn" id="btn-call-share-screen" title="Screen Share">
+          <span class="ctrl-icon">SCR</span>
+          <span class="ctrl-lbl">Share</span>
+        </button>
+        <button class="call-ctrl-btn" id="btn-call-send-nagham" title="Send In-Call DTMF Acoustic Pulse">
+          <span class="ctrl-icon">DTMF</span>
+          <span class="ctrl-lbl">Nagham</span>
+        </button>
+        <button class="call-ctrl-btn" id="btn-call-stream-youtube" title="Watch Party / Video Stream">
+          <span class="ctrl-icon">STREAM</span>
+          <span class="ctrl-lbl">Stream</span>
+        </button>
+        <button class="call-ctrl-btn end-call-btn" id="btn-call-hangup" title="End Call">
+          <span class="ctrl-icon">END</span>
+          <span class="ctrl-lbl">Hang Up</span>
+        </button>
       </div>
     </div>
   </div>
 
+  <!-- Incoming Call Banner Modal -->
+  <div class="modal-overlay" id="modal-incoming-call">
+    <div class="modal-card incoming-call-card">
+      <div class="incoming-call-pulse-ring">
+        <div class="incoming-call-avatar" id="incoming-call-avatar">AG</div>
+      </div>
+      <h3 class="incoming-caller-name" id="incoming-caller-name">antigravity</h3>
+      <p class="incoming-call-type" id="incoming-call-type-text">Incoming P2P Encrypted Video Call</p>
+      <div class="incoming-actions">
+        <button class="btn btn-decline-call" id="btn-incoming-decline">
+          Decline
+        </button>
+        <button class="btn btn-accept-call" id="btn-incoming-accept">
+          Accept
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Lightbox Modal -->
+  <div class="modal-overlay" id="modal-image-lightbox" onclick="closeModal('modal-image-lightbox')">
+    <div class="lightbox-container" onclick="event.stopPropagation()">
+      <button class="modal-close lightbox-close" onclick="closeModal('modal-image-lightbox')">✕</button>
+      <img id="lightbox-img" src="" alt="Enlarged Media">
+    </div>
+  </div>
+
+  <!-- Stream Video / Watch Party Modal -->
+  <div class="modal-overlay" id="modal-stream-youtube">
+    <div class="modal-content modal-youtube-stream">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">VID</span>
+          <h3>VCWYVL // P2P Media Stream</h3>
+        </div>
+        <button class="modal-close" data-close="modal-stream-youtube">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Video call with shared media stream link.</p>
+        <div class="form-group">
+          <label for="yt-stream-url-input">Stream Link / Search Query</label>
+          <div class="yt-input-row">
+            <input type="text" id="yt-stream-url-input" class="form-control" placeholder="https://www.youtube.com/watch?v=BrPffpg9KFM" value="https://www.youtube.com/watch?v=BrPffpg9KFM">
+            <button class="btn btn-secondary" id="btn-yt-search-action">Search</button>
+          </div>
+        </div>
+        <div class="yt-search-results-list" id="yt-search-results" style="display: none;"></div>
+        <div class="yt-target-peer-banner" id="yt-target-peer-banner">
+          <span>Target Peer: <strong id="yt-target-peer-name">enver</strong></span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" data-close="modal-stream-youtube">Cancel</button>
+          <button class="btn btn-primary btn-yt-stream-start" id="btn-yt-start-stream">
+            <span>Start Video Call & Stream</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input type="hidden" id="space-icon-input" value="WN">
+  <video id="shaf-fallback-local-video" autoplay playsinline muted style="display:none;"></video>
+  <video id="wyresup-hidden-stream-video" autoplay playsinline style="display:none;"></video>
 </body>
 </html>

@@ -325,175 +325,36 @@
     if (modal) modal.style.display = "none";
   };
 
-  // 5. WebRTC P2P Voice & Video Calling Engine
+  // 5. WebRTC P2P Voice & Video Calling Engine (Delegated to Sovereign app.js)
+  const realAppStartCall = window.startOutgoingCall;
+  const realAppAcceptCall = window.acceptIncomingCall;
+  const realAppDeclineCall = window.declineIncomingCall;
+  const realAppEndCall = window.endActiveCall;
+  const realAppToggleMic = window.toggleCallMic;
+  const realAppToggleCam = window.toggleCallCam;
+
   window.startWebRtcCall = async function(callType) {
-    const modal = document.getElementById("webrtc-call-modal");
-    const title = document.getElementById("call-modal-peer-title");
-    const status = document.getElementById("call-status-label");
-    const incomingActions = document.getElementById("incoming-call-actions");
-    const activeControls = document.getElementById("active-call-controls");
-    const videoContainer = document.getElementById("call-video-container");
-
-    if (modal) modal.style.display = "flex";
-    if (title) title.textContent = (callType === "video" ? "Outgoing Video Call" : "Outgoing Sovereign Voice Call");
-    if (status) status.textContent = "Calling peer on channel #" + currentChannelId + "...";
-    if (incomingActions) incomingActions.style.display = "none";
-    if (activeControls) activeControls.style.display = "flex";
-
-    try {
-      localMediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: callType === "video"
-      });
-
-      if (callType === "video" && videoContainer) {
-        videoContainer.style.display = "block";
-        const localVid = document.getElementById("local-video");
-        if (localVid) localVid.srcObject = localMediaStream;
+    if (typeof window.startOutgoingCall === "function") {
+      let targetPeer = null;
+      if (window.state && window.state.currentChannelId && window.state.currentChannelId.startsWith("dm-")) {
+        const targetPrefix = window.state.currentChannelId.replace("dm-", "");
+        targetPeer = window.state.peers?.find(p => p.prefix === targetPrefix || p.peerId.startsWith(targetPrefix))?.peerId || `${targetPrefix}@mesh`;
+      } else if (window.state && window.state.peers) {
+        const otherPeer = window.state.peers.find(p => p.peerId !== window.state.identity?.fullId);
+        targetPeer = otherPeer ? otherPeer.peerId : "antigravity@mesh";
+      } else {
+        targetPeer = "antigravity@mesh";
       }
-
-      // Initialize WyreWebRtcChannel if available
-      if (window.WyreWebRtcChannel) {
-        rtcChannel = new window.WyreWebRtcChannel();
-        const pc = rtcChannel.createPeerConnection({
-          localStream: localMediaStream,
-          onRemoteTrack: function(stream) {
-            const remoteVid = document.getElementById("remote-video");
-            if (remoteVid) remoteVid.srcObject = stream;
-          },
-          onConnectionChange: function(state) {
-            if (status) status.textContent = "Connection: " + state;
-          }
-        });
-        await rtcChannel.generateOffer(pc);
-      }
-
-      startCallTimer();
-      initAudioVisualizer(localMediaStream);
-    } catch (err) {
-      if (status) status.textContent = "Media permission denied or hardware unavailable.";
+      return window.startOutgoingCall(targetPeer, callType === "video" ? "video" : "audio");
     }
   };
 
-  window.acceptIncomingCall = async function() {
-    const incomingActions = document.getElementById("incoming-call-actions");
-    const activeControls = document.getElementById("active-call-controls");
-    const status = document.getElementById("call-status-label");
+  if (realAppAcceptCall) window.acceptIncomingCall = realAppAcceptCall;
+  if (realAppDeclineCall) window.declineIncomingCall = realAppDeclineCall;
+  if (realAppEndCall) window.endCurrentCall = function() { return window.endActiveCall ? window.endActiveCall(true) : null; };
+  if (realAppToggleMic) window.toggleCallMute = function() { return window.toggleCallMic ? window.toggleCallMic() : null; };
+  if (realAppToggleCam) window.toggleCallVideo = function() { return window.toggleCallCam ? window.toggleCallCam() : null; };
 
-    if (incomingActions) incomingActions.style.display = "none";
-    if (activeControls) activeControls.style.display = "flex";
-    if (status) status.textContent = "RTC CONNECTED // MUTTASIL (0-RTT)";
-
-    try {
-      localMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      startCallTimer();
-      initAudioVisualizer(localMediaStream);
-    } catch (e) {}
-  };
-
-  window.declineIncomingCall = function() {
-    window.endCurrentCall();
-  };
-
-  window.endCurrentCall = function() {
-    const modal = document.getElementById("webrtc-call-modal");
-    if (modal) modal.style.display = "none";
-
-    try {
-      if (localMediaStream) {
-        localMediaStream.getTracks().forEach(t => {
-          try { t.stop(); } catch (e) {}
-        });
-      }
-    } finally {
-      localMediaStream = null;
-      if (callTimerInterval) {
-        clearInterval(callTimerInterval);
-        callTimerInterval = null;
-      }
-      callDurationSeconds = 0;
-      if (visualizerAnimId) {
-        cancelAnimationFrame(visualizerAnimId);
-        visualizerAnimId = null;
-      }
-      if (rtcChannel && rtcChannel.peerConnection) {
-        try { rtcChannel.peerConnection.close(); } catch (e) {}
-      }
-    }
-  };
-
-  window.toggleCallMute = function() {
-    if (!localMediaStream) return;
-    const audioTrack = localMediaStream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      const btn = document.getElementById("btn-call-mute");
-      if (btn) btn.textContent = audioTrack.enabled ? "[MUTE MIC]" : "[UNMUTE MIC]";
-    }
-  };
-
-  window.toggleCallVideo = function() {
-    if (!localMediaStream) return;
-    const videoTrack = localMediaStream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled;
-      const btn = document.getElementById("btn-call-video-toggle");
-      if (btn) btn.textContent = videoTrack.enabled ? "[CAMERA OFF]" : "[CAMERA ON]";
-    }
-  };
-
-  function startCallTimer() {
-    callDurationSeconds = 0;
-    const status = document.getElementById("call-status-label");
-    if (callTimerInterval) clearInterval(callTimerInterval);
-    callTimerInterval = setInterval(function() {
-      callDurationSeconds++;
-      const mins = Math.floor(callDurationSeconds / 60).toString().padStart(2, "0");
-      const secs = (callDurationSeconds % 60).toString().padStart(2, "0");
-      if (status) status.textContent = "CONNECTED (" + mins + ":" + secs + ") // MUTTASIL";
-    }, 1000);
-  }
-
-  // 6. Real-Time Audio Visualizer (Voice Lounge Canvas)
-  function initAudioVisualizer(stream) {
-    const canvas = document.getElementById("audio-visualizer");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      audioContext = new AudioCtx();
-      if (audioContext.state === "suspended") { audioContext.resume(); }
-      const source = audioContext.createMediaStreamSource(stream);
-      analyserNode = audioContext.createAnalyser();
-      analyserNode.fftSize = 64;
-      source.connect(analyserNode);
-
-      const bufferLength = analyserNode.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      function draw() {
-        visualizerAnimId = requestAnimationFrame(draw);
-        analyserNode.getByteFrequencyData(dataArray);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const barWidth = (canvas.width / bufferLength) * 2;
-        let x = 0;
-
-        for (let i = 0; i < bufferLength; i++) {
-          const barHeight = (dataArray[i] / 255) * canvas.height;
-          ctx.fillStyle = "#00f59b";
-          ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
-          x += barWidth;
-        }
-      }
-      draw();
-    } catch (e) {
-      console.warn("Visualizer fallback mode");
-    }
-  }
-
-  // 7. Nagham DTMF Acoustic Key Exchange Synthesizer
   window.playDtmfTone = function(symbol) {
     const DTMF_FREQS = {
       "1": [697, 1209], "2": [697, 1336], "3": [697, 1477],

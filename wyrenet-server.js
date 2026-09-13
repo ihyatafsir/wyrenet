@@ -19,6 +19,22 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+
+// Auto-load .env configuration
+try {
+  const envPath = path.join(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const l of envLines) {
+      const trimmed = l.trim();
+      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+        const [k, ...v] = trimmed.split('=');
+        if (!process.env[k.trim()]) process.env[k.trim()] = v.join('=').trim();
+      }
+    }
+  }
+} catch (e) {}
+
 const { execSync } = require('child_process');
 const WebSocket = require('ws');
 const { keccak_256 } = require('@noble/hashes/sha3.js');
@@ -743,62 +759,181 @@ const server = http.createServer(async (req, res) => {
   res.end('WyreNet file not found.');
 });
 
-// 2. WebSocket P2P Signaling Server on port 9000 & handling port 5190 upgrades
-const wss = new WebSocket.Server({ port: WS_PORT });
+// 2. Unified WebSocket P2P Signaling & Mesh Relay on port 5190 (Upgrade) and port 9000 (Standalone)
+const wssUpgrade = new WebSocket.Server({ noServer: true });
+const wssStandalone = new WebSocket.Server({ port: WS_PORT });
 
-wss.on('connection', (ws, req) => {
+function findSocketByPeer(targetPeer) {
+  if (!targetPeer) return null;
+  if (connectedPeers.has(targetPeer)) return connectedPeers.get(targetPeer);
+  for (const [id, client] of connectedPeers.entries()) {
+    if (client.peerRecord) {
+      if (client.peerRecord.peerId === targetPeer || client.peerRecord.prefix === targetPeer) {
+        return client;
+      }
+    }
+    if (id.startsWith(targetPeer) || targetPeer.startsWith(id)) {
+      return client;
+    }
+  }
+  return null;
+}
+
+function broadcastPresenceSync() {
+  const peers = presenceManager.getAllPeers();
+  const syncMsg = JSON.stringify({
+    type: "PRESENCE_SYNC",
+    payload: { peers }
+  });
+  for (const [id, client] of connectedPeers.entries()) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(syncMsg);
+    }
+  }
+}
+
+// Forward GossipMesh broadcast packets to all connected clients
+gossipMesh.on("message", ({ packet, isLocal }) => {
+  const jsonStr = JSON.stringify({ type: "GOSSIP_PACKET", payload: packet });
+  for (const [id, client] of connectedPeers.entries()) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(jsonStr);
+    }
+  }
+});
+
+function handlePeerConnection(ws, req) {
   if (connectedPeers.size >= MAX_PEERS) {
     ws.close(1008, "Peer connection limit reached");
     return;
   }
-  const peerId = 'peer_' + Math.random().toString(36).substring(2, 10);
+  const peerId = "peer_" + Math.random().toString(36).substring(2, 10);
+  ws.peerId = peerId;
+  ws.isAlive = true;
   connectedPeers.set(peerId, ws);
   console.log(`[Mesh Relay] Peer connected: ${peerId} (Total: ${connectedPeers.size})`);
 
   ws.send(JSON.stringify({
-    type: 'WELCOME',
+    type: "WELCOME",
     peerId,
     timestamp: Date.now(),
-    network: 'WyreNet Sovereign Mesh',
+    network: "WyreNet Sovereign Mesh",
     chainId: 51950
   }));
 
-  ws.on('message', (message) => {
+  ws.on("message", (message) => {
     try {
       const data = JSON.parse(message);
-      if (data.type === 'IDENTIFY') {
+      if (data.type === "IDENTIFY") {
         const peerRecord = {
-          peerId,
-          prefix: (data.payload && data.payload.prefix) || 'peer',
+          peerId: (data.payload && data.payload.peerId) || peerId,
+          prefix: (data.payload && data.payload.prefix) || "peer",
           shortHash: (data.payload && data.payload.shortHash) || peerId.substring(0, 8),
-          spaceId: (data.payload && data.payload.spaceId) || 'space-public-mesh',
-          channelId: (data.payload && data.payload.channelId) || 'chan-general',
+          spaceId: (data.payload && data.payload.spaceId) || "space-public-mesh",
+          channelId: (data.payload && data.payload.channelId) || "chan-general",
+          ecdhPubKey: (data.payload && data.payload.ecdhPubKey) || null,
+          signPubKey: (data.payload && data.payload.signPubKey) || null,
           lastSeen: Date.now()
         };
+        ws.peerRecord = peerRecord;
         presenceManager.recordHeartbeat(peerRecord);
         ws.send(JSON.stringify({
-          type: 'IDENTIFIED',
+          type: "IDENTIFIED",
           payload: {
             identity: peerRecord,
             spaces: majlisManager.getAllSpaces(),
             peers: presenceManager.getAllPeers()
           }
         }));
-      } else if (data.type === 'SEND_MESSAGE') {
-        const payload = data.payload || {};
-        gossipMesh.receivePacket(payload, peerId);
+        broadcastPresenceSync();
+        return;
       }
+
+      if (data.type === "HEARTBEAT") {
+        ws.isAlive = true;
+        if (ws.peerRecord) ws.peerRecord.lastSeen = Date.now();
+        ws.send(JSON.stringify({ type: "HEARTBEAT_ACK", timestamp: Date.now() }));
+        return;
+      }
+
+      if (data.type === "SEND_MESSAGE") {
+        const payload = data.payload || {};
+        if (payload.zahir && payload.batin) {
+          gossipMesh.receivePacket(payload, peerId);
+        } else {
+          const spaceId = payload.spaceId || "space-public-mesh";
+          const targetChannel = payload.channelId || "chan-general";
+          gossipMesh.publish(spaceId, targetChannel, {
+            content: payload.content,
+            voiceData: payload.voiceData,
+            attachments: payload.attachments,
+            replyTo: payload.replyTo
+          }, {
+            senderId: (ws.peerRecord && ws.peerRecord.peerId) || peerId,
+            isVoice: !!payload.voiceData
+          });
+        }
+        return;
+      }
+
+      if (data.type === "GOSSIP_PACKET") {
+        const payload = data.payload || {};
+        if (payload && payload.zahir) {
+          gossipMesh.receivePacket(payload, peerId);
+        }
+        return;
+      }
+
+      if (data.type === "CALL_SIGNAL") {
+        const payload = data.payload || {};
+        if (!payload.senderPeer) {
+          payload.senderPeer = (ws.peerRecord && ws.peerRecord.peerId) || peerId;
+        }
+        if (!payload.senderPrefix) {
+          payload.senderPrefix = (ws.peerRecord && ws.peerRecord.prefix) || "peer";
+        }
+        const forwardData = { ...data, payload, from: peerId };
+        const forwardStr = JSON.stringify(forwardData);
+
+        const targetSock = findSocketByPeer(payload.targetPeer);
+        if (targetSock && targetSock.readyState === WebSocket.OPEN && targetSock !== ws) {
+          targetSock.send(forwardStr);
+        } else {
+          for (const [id, client] of connectedPeers.entries()) {
+            if (id !== peerId && client.readyState === WebSocket.OPEN) {
+              client.send(forwardStr);
+            }
+          }
+        }
+        return;
+      }
+
+      // Default broadcast for other mesh events (CHAT_MESSAGE, TYPING, etc.)
+      const broadcastStr = JSON.stringify({ ...data, from: peerId });
       for (const [id, client] of connectedPeers.entries()) {
         if (id !== peerId && client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({ ...data, from: peerId }));
+          client.send(broadcastStr);
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("[Mesh Relay Warning]:", e.message);
+    }
   });
 
-  ws.on('close', () => {
+  ws.on("close", () => {
     connectedPeers.delete(peerId);
     console.log(`[Mesh Relay] Peer disconnected: ${peerId}`);
+    broadcastPresenceSync();
+  });
+}
+
+wssUpgrade.on("connection", handlePeerConnection);
+wssStandalone.on("connection", handlePeerConnection);
+
+// Handle HTTP WebSocket Upgrade on Port 5190
+server.on("upgrade", (request, socket, head) => {
+  wssUpgrade.handleUpgrade(request, socket, head, (ws) => {
+    wssUpgrade.emit("connection", ws, request);
   });
 });
 

@@ -32,12 +32,24 @@
   class WyreWebRtcChannel {
     constructor(configuration = {}) {
       this.rtcConfig = configuration.rtcConfig || {
+        bundlePolicy: "max-bundle",
+        rtcpMuxPolicy: "require",
         iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" }
+          { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
+          { urls: ["stun:stun.cloudflare.com:3478"] },
+          { urls: ["stun:openrelay.metered.ca:80"] },
+          {
+            urls: [
+              "turn:openrelay.metered.ca:80",
+              "turn:openrelay.metered.ca:443",
+              "turns:openrelay.metered.ca:443?transport=tcp"
+            ],
+            username: "openrelay",
+            credential: "openrelay"
+          }
         ],
-        sdpSemantics: "unified-plan",
-        bundlePolicy: "max-bundle"
+        iceCandidatePoolSize: 10,
+        sdpSemantics: "unified-plan"
       };
       this.channelState = ChannelState.INITIALIZING;
       this.remoteMediaStream = null;

@@ -576,11 +576,11 @@ class WyreCrypto {
     const currentLen = new TextEncoder().encode(raw).length;
     let target = targetSizes.find(s => s > currentLen + 8) || (Math.ceil((currentLen + 8) / 1024) * 1024);
     const padLen = target - currentLen - 4;
-    return raw + " " + " ".repeat(Math.max(0, padLen - 2)) + " ";
+    return raw + "\u0000\u0080" + " ".repeat(Math.max(0, padLen - 2)) + "\u0000";
   }
 
   static unpadPayload(paddedStr) {
-    const idx = paddedStr.indexOf(" ");
+    const idx = paddedStr.indexOf("\u0000\u0080");
     return idx !== -1 ? paddedStr.substring(0, idx) : paddedStr;
   }
 }
@@ -955,9 +955,50 @@ function handleServerMessage(msg) {
       }
       break;
 
-    case 'CALL_SIGNAL':
-      handleIncomingCallSignal(payload);
+    case 'SEND_MESSAGE':
+      if (payload) {
+        if (payload.zahir && payload.batin) {
+          handleIncomingGossipPacket(payload);
+        } else {
+          const chId = payload.channelId || state.currentChannelId;
+          if (!state.messages.has(chId)) state.messages.set(chId, []);
+          const list = state.messages.get(chId);
+          const msgObj = {
+            zahir: {
+              messageId: payload.messageId || generateClientMessageId(),
+              senderId: payload.senderId || msg.from || "peer",
+              channelId: chId,
+              timestamp: payload.timestamp || Date.now(),
+              isVoice: !!payload.voiceData
+            },
+            batin: {
+              content: payload.content || "",
+              voiceData: payload.voiceData || null,
+              attachments: payload.attachments || []
+            },
+            isEncrypted: false,
+            isDecrypted: true
+          };
+          if (!list.some(m => m.zahir.messageId === msgObj.zahir.messageId)) {
+            list.push(msgObj);
+            if (state.currentChannelId === chId) {
+              renderMessages();
+              scrollMessagesToBottom();
+            }
+          }
+        }
+      }
       break;
+
+    case 'CALL_SIGNAL': {
+      const callPayload = { ...payload };
+      if (!callPayload.senderPeer && msg.from) callPayload.senderPeer = msg.from;
+      if (!callPayload.senderPrefix && callPayload.senderPeer) {
+        callPayload.senderPrefix = callPayload.senderPeer.split("@")[0];
+      }
+      handleIncomingCallSignal(callPayload);
+      break;
+    }
 
     case 'MESSAGES_CLEARED':
       const targetChan = payload.channelId;
@@ -3729,6 +3770,8 @@ window.startOutgoingCall = async function startOutgoingCall(targetPeer, callType
         payload: {
           signalType: 'OFFER',
           targetPeer: peerId,
+          senderPeer: state.identity ? state.identity.fullId : "peer",
+          senderPrefix: state.identity ? state.identity.prefix : "peer",
           callType,
           sdp: offer
         }
@@ -3754,7 +3797,15 @@ window.startOutgoingCall = async function startOutgoingCall(targetPeer, callType
 }
 
 async function handleIncomingCallSignal(payload) {
-  const { signalType, senderPeer, senderPrefix, sdp, candidate, callType } = payload;
+  const { signalType, senderPeer, senderPrefix, sdp, candidate, callType, targetPeer } = payload;
+  if (targetPeer && state.identity) {
+    const myId = state.identity.fullId;
+    const myPrefix = state.identity.prefix;
+    const myPeerId = state.identity.peerId;
+    if (targetPeer !== myId && targetPeer !== myPrefix && targetPeer !== myPeerId && !targetPeer.startsWith(myPrefix)) {
+      return;
+    }
+  }
 
   if (signalType === 'OFFER') {
     // 1. If user is already in an active call, ignore new offers so audio is never disrupted
@@ -4053,6 +4104,8 @@ async function acceptIncomingCall() {
             payload: {
               signalType: 'ANSWER',
               targetPeer: senderPeer,
+              senderPeer: state.identity ? state.identity.fullId : "peer",
+              senderPrefix: state.identity ? state.identity.prefix : "peer",
               sdp: answer
             }
           }));
@@ -4661,10 +4714,15 @@ function renderLisanLexicon(items) {
 // Global Window Bindings for Inline HTML Handlers
 window.startYoutubeStreamCall = startYoutubeStreamCall;
 window.openStreamYoutubeModal = openStreamYoutubeModal;
+window.startOutgoingCall = startOutgoingCall;
 window.acceptIncomingCall = acceptIncomingCall;
 window.rejectIncomingCall = declineIncomingCall;
 window.declineIncomingCall = declineIncomingCall;
 window.endActiveCall = endActiveCall;
+window.toggleCallMic = toggleCallMic;
+window.toggleCallCam = toggleCallCam;
+window.toggleCallScreenShare = toggleCallScreenShare;
+window.sendInCallNaghamTone = sendInCallNaghamTone;
 
 window.openEpubInReader = function(filename, title, url) {
   if (typeof window.openBookReader === 'function') {
