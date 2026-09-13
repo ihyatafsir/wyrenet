@@ -318,7 +318,7 @@ export default function App() {
               name="Chat"
               component={ChatScreen}
               options={{
-                headerShown: true,
+                headerShown: false,
                 headerStyle: { backgroundColor: "#050510" },
                 headerTintColor: "#00ff88",
                 headerTitleStyle: { fontWeight: "bold" },
