@@ -1876,12 +1876,12 @@ html, body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.82);
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 11000;
   padding: 16px;
 }
 
@@ -3785,9 +3785,9 @@ html, body {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.84);
+      background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(14px);
-      z-index: 1000;
+      z-index: 11000;
       align-items: flex-end;
       justify-content: center;
     }

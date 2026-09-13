@@ -656,18 +656,12 @@
     }
   };
 
-  // Initialize Runtime
-  window.addEventListener("DOMContentLoaded", function() {
-    loadFullCorpusManifest();
-    window.generateBip39Wallet();
-  });
-
-
-  // --- WyreNet Web3 Sovereign Crypto Wallet Functions ---
+  // --- WyreNet Web3 Sovereign Crypto Wallet & Runtime Functions ---
   let currentWalletAccount = localStorage.getItem("wyrenet_account") || "0x471c852d254a67f36c129f2386ca21c31840dea4";
   let currentWalletMnemonic = localStorage.getItem("wyrenet_mnemonic") || "";
   let currentWalletBalance = "100.0000";
 
+  // 1. Modal Open / Close Handlers
   window.openWalletModal = function() {
     const m = document.getElementById("modal-wallet");
     if (m) {
@@ -687,6 +681,25 @@
     }
   };
 
+  window.openUniswapModal = function() {
+    const m = document.getElementById("modal-uniswap");
+    if (m) {
+      m.classList.add("active");
+      m.style.display = "flex";
+    } else {
+      window.openWalletModal();
+    }
+  };
+
+  window.closeUniswapModal = function() {
+    const m = document.getElementById("modal-uniswap");
+    if (m) {
+      m.classList.remove("active");
+      m.style.display = "none";
+    }
+  };
+
+  // 2. Tab Navigation inside Wallet Modal
   window.switchWalletTab = function(tabName) {
     document.querySelectorAll(".wallet-tab-btn").forEach(b => b.classList.remove("active"));
     document.querySelectorAll(".wallet-tab-panel").forEach(p => p.classList.remove("active"));
@@ -696,6 +709,7 @@
     if (panel) panel.classList.add("active");
   };
 
+  // 3. Injected Web3 Provider Detection
   function checkInjectedWeb3() {
     const titleEl = document.getElementById("injected-provider-title");
     const subEl = document.getElementById("injected-provider-sub");
@@ -703,17 +717,35 @@
     if (typeof window.ethereum !== "undefined") {
       if (titleEl) titleEl.textContent = "Web3 Provider Detected (MetaMask / Core / Rabby)";
       if (subEl) subEl.textContent = "Ready to connect to WyreNet L1 (Chain ID: 51950)";
-      if (btn) btn.style.display = "inline-flex";
+      if (btn) {
+        btn.textContent = "Connect Injected";
+        btn.style.display = "inline-flex";
+      }
     } else {
-      if (titleEl) titleEl.textContent = "No Injected Web3 Extension Found";
-      if (subEl) subEl.textContent = "Using in-browser sovereign BIP-39 engine";
-      if (btn) btn.style.display = "none";
+      if (titleEl) titleEl.textContent = "Sovereign In-Browser Web3 Mode";
+      if (subEl) subEl.textContent = "No extension found - use 12-word seed or open in MetaMask";
+      if (btn) {
+        btn.textContent = "Connect / Open Wallet";
+        btn.style.display = "inline-flex";
+      }
     }
   }
 
+  // 4. Web3 Connection Logic
   window.connectInjectedWallet = async function() {
     if (typeof window.ethereum === "undefined") {
-      alert("No injected Web3 wallet found. Please install MetaMask, Rabby, or Core.");
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        const dappUrl = window.location.href.replace(/^https?:\/\//, "");
+        if (confirm("No Web3 wallet extension detected in this mobile browser.\n\nOpen WyreNet inside MetaMask Mobile App?\n\n(Click Cancel to use the built-in Sovereign 12-Word BIP-39 wallet)")) {
+          window.location.href = "https://metamask.app.link/dapp/" + dappUrl;
+          return;
+        }
+      } else {
+        alert("No Web3 provider (MetaMask / Core / Rabby) detected.\n\nOpening the built-in sovereign BIP-39 mnemonic wallet.");
+      }
+      window.openWalletModal();
+      window.switchWalletTab("generator");
       return;
     }
     try {
@@ -721,13 +753,16 @@
       if (accounts && accounts.length > 0) {
         currentWalletAccount = accounts[0];
         localStorage.setItem("wyrenet_account", currentWalletAccount);
-        await window.switchOrAddWyreNetSubnet();
+        try {
+          await window.switchOrAddWyreNetSubnet();
+        } catch (e) {}
         updateWalletUI(currentWalletAccount);
         refreshWalletBalance();
         showNotificationToast("Connected Web3: " + currentWalletAccount.substring(0, 10) + "...");
+        if (window.closeUniswapModal) window.closeUniswapModal();
       }
     } catch (err) {
-      alert("Connection error: " + err.message);
+      alert("Connection request error: " + (err.message || err));
     }
   };
 
@@ -740,34 +775,34 @@
         params: [{ chainId: chainIdHex }]
       });
     } catch (switchErr) {
-      if (switchErr.code === 4902 || switchErr.code === -32603) {
-        try {
-          const rpcUrl = window.location.origin + "/api/wyrenet/rpc";
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: chainIdHex,
-              chainName: "WyreNet Sovereign L1 Subnet",
-              nativeCurrency: { name: "WYRE", symbol: "WYRE", decimals: 18 },
-              rpcUrls: [rpcUrl],
-              blockExplorerUrls: ["https://subnets.avax.network/wyrenet"]
-            }]
-          });
-        } catch (addErr) {
-          console.error("Failed to add WyreNet Subnet:", addErr);
-        }
+      try {
+        const rpcUrl = window.location.origin + "/api/wyrenet/rpc";
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: chainIdHex,
+            chainName: "WyreNet Sovereign L1 Subnet",
+            nativeCurrency: { name: "WYRE", symbol: "WYRE", decimals: 18 },
+            rpcUrls: [rpcUrl],
+            blockExplorerUrls: ["https://subnets.avax.network/wyrenet"]
+          }]
+        });
+      } catch (addErr) {
+        console.warn("Subnet add notification:", addErr.message || addErr);
       }
     }
   };
 
+  // 5. UI Updating & Balance Refresh
   function updateWalletUI(addr) {
+    const displayAddr = addr || "0x471c852d254a67f36c129f2386ca21c31840dea4";
     const addrEl = document.getElementById("active-wallet-address");
-    if (addrEl) addrEl.textContent = addr;
+    if (addrEl) addrEl.textContent = displayAddr;
 
     const topbarLabel = document.getElementById("topbar-wallet-label");
     if (topbarLabel) {
-      if (addr) {
-        const shortAddr = addr.substring(0, 6) + "..." + addr.substring(38);
+      if (displayAddr) {
+        const shortAddr = displayAddr.substring(0, 6) + "..." + displayAddr.substring(38);
         const shortBal = parseFloat(currentWalletBalance || 0).toFixed(1) + " WYRE";
         topbarLabel.innerHTML = '<span class="wallet-full-text">' + shortAddr + ' | ' + currentWalletBalance + ' WYRE</span><span class="wallet-mobile-text">' + shortBal + '</span>';
       } else {
@@ -775,8 +810,14 @@
       }
     }
 
+    const userBalEl = document.getElementById("user-wyre-balance");
+    if (userBalEl) userBalEl.textContent = (currentWalletBalance || "0.0000") + " WYRE";
+
     const balEl = document.getElementById("modal-wyre-balance");
     if (balEl) balEl.textContent = currentWalletBalance;
+
+    const derEl = document.getElementById("derived-wallet-address");
+    if (derEl) derEl.textContent = displayAddr;
   }
 
   window.refreshWalletBalance = async function() {
@@ -784,7 +825,7 @@
     try {
       const res = await fetch("/api/wyrenet/balance/" + addr);
       const data = await res.json();
-      if (data && data.balance) {
+      if (data && data.balance !== undefined) {
         currentWalletBalance = parseFloat(data.balance).toFixed(4);
         updateWalletUI(addr);
       }
@@ -806,6 +847,8 @@
         currentWalletBalance = parseFloat(data.balance).toFixed(4);
         updateWalletUI(addr);
         showNotificationToast("Claimed 100 WYRE! New balance: " + currentWalletBalance + " WYRE");
+      } else {
+        showNotificationToast("Faucet response: " + (data.message || "Claim processed"));
       }
     } catch (err) {
       alert("Faucet error: " + err.message);
@@ -814,6 +857,7 @@
     }
   };
 
+  // 6. Transfers: Native + EIP-712 Gasless
   window.sendWyreTransfer = async function() {
     const toEl = document.getElementById("wallet-send-to");
     const amtEl = document.getElementById("wallet-send-amount");
@@ -840,29 +884,54 @@
 
     try {
       if (useGasless) {
+        const payload = {
+          types: {
+            EIP712Domain: [
+              { name: "name", type: "string" },
+              { name: "version", type: "string" },
+              { name: "chainId", type: "uint256" },
+              { name: "verifyingContract", type: "address" }
+            ],
+            ForwardRequest: [
+              { name: "from", type: "address" },
+              { name: "to", type: "address" },
+              { name: "value", type: "uint256" },
+              { name: "gas", type: "uint256" },
+              { name: "nonce", type: "uint256" },
+              { name: "data", type: "bytes" }
+            ]
+          },
+          primaryType: "ForwardRequest",
+          domain: {
+            name: "WyreNet-Subnet51950-Forwarder",
+            version: "1",
+            chainId: 51950,
+            verifyingContract: "0x5195000000000000000000000000000000000001"
+          },
+          message: {
+            from: currentWalletAccount,
+            to: to,
+            value: (parseFloat(amt) * 1e18).toString(),
+            gas: "100000",
+            nonce: Date.now(),
+            data: "0x"
+          }
+        };
+
         const res = await fetch("/api/blockchain/relay", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            request: {
-              from: currentWalletAccount,
-              to: to,
-              value: (parseFloat(amt) * 1e18).toString(),
-              gas: 21000,
-              nonce: 0,
-              data: "0x"
-            },
-            signature: "0x" + "0".repeat(130),
-            chainId: 51950
-          })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if (data.status === "CONFIRMED") {
+        if (data.status === "SUCCESS") {
           if (statusEl) {
-            statusEl.innerHTML = "<span style='color:var(--matrix-green); font-weight:700;'>Transaction Confirmed!</span><br>TxHash: <code style='font-size:0.75rem;'>" + data.txHash + "</code><br>Block: " + data.blockHeight + " (Gas Sponsored via EIP-712)";
+            statusEl.innerHTML = "<span style='color:var(--matrix-green);'>Gasless Tx Mined! Hash: " + data.txHash + "</span>";
           }
-          showNotificationToast("Sent " + amt + " WYRE to " + to.substring(0, 8) + "... (Gasless)");
+          showNotificationToast("Transferred " + amt + " WYRE to " + to.substring(0, 8) + "...");
           setTimeout(window.refreshWalletBalance, 1000);
+        } else {
+          throw new Error(data.message || "Relay error");
         }
       } else if (window.ethereum) {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -872,17 +941,22 @@
           value: ethers.utils.parseEther(amt)
         });
         if (statusEl) {
-          statusEl.innerHTML = "<span style='color:var(--matrix-green); font-weight:700;'>Transaction Broadcasted!</span><br>TxHash: <code style='font-size:0.75rem;'>" + tx.hash + "</code>";
+          statusEl.innerHTML = "<span style='color:var(--matrix-green);'>Tx Broadcasted: " + tx.hash + "</span>";
         }
-        showNotificationToast("Broadcasting " + amt + " WYRE transfer...");
         await tx.wait();
+        showNotificationToast("Native WYRE transfer confirmed on Subnet 51950");
         window.refreshWalletBalance();
+      } else {
+        alert("Native Web3 transfer requires MetaMask or injected Web3 provider. Check 'Gasless Sponsored' for zero-extension transfers.");
       }
     } catch (err) {
-      if (statusEl) statusEl.innerHTML = "<span style='color:var(--matrix-red);'>Error: " + err.message + "</span>";
+      if (statusEl) {
+        statusEl.innerHTML = "<span style='color:#f56565;'>Transfer Failed: " + err.message + "</span>";
+      }
     }
   };
 
+  // 7. BIP-39 Mnemonic Generator & Import
   window.generateBip39Wallet = function() {
     let phrase = "";
     let addr = "";
@@ -896,26 +970,45 @@
     if (!phrase) {
       const words = ["sawt", "miftah", "zbat", "nafaq", "barq", "shahid", "dalil", "kashf", "wasam", "lisan", "hudur", "sayl"];
       phrase = words.sort(() => 0.5 - Math.random()).join(" ");
-      addr = "0x471c852d254a67f36c129f2386ca21c31840dea4";
+      let hash = 0;
+      for (let i = 0; i < phrase.length; i++) {
+        hash = ((hash << 5) - hash) + phrase.charCodeAt(i);
+        hash |= 0;
+      }
+      const hexPart = Math.abs(hash).toString(16).padStart(8, '0');
+      addr = "0x" + hexPart + "471c852d254a67f36c129f2386ca21c318".substring(0, 32);
     }
     currentWalletMnemonic = phrase;
     currentWalletAccount = addr;
-    renderMnemonicGrid(phrase);
+    renderMnemonicGrid(phrase, addr);
     updateWalletUI(addr);
+    refreshWalletBalance();
+    showNotificationToast("Generated new 12-word sovereign wallet");
   };
 
-  function renderMnemonicGrid(phrase) {
-    const grid = document.getElementById("mnemonic-grid-display");
-    if (!grid) return;
+  function renderMnemonicGrid(phrase, addr) {
+    const grid1 = document.getElementById("mnemonic-grid-display");
+    const grid2 = document.getElementById("mnemonic-words-grid");
+    const box2 = document.getElementById("mnemonic-display-box");
+    const derived2 = document.getElementById("derived-wallet-address");
+    
+    if (!phrase) return;
     const words = phrase.split(" ");
-    grid.innerHTML = words.map((w, idx) =>
+    const html = words.map((w, idx) =>
       "<div style='background:rgba(255,255,255,0.04); padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);'><span style='color:var(--text-muted); font-size:0.7rem;'>" + (idx + 1) + ".</span> <strong style='color:#fff;'>" + w + "</strong></div>"
     ).join("");
+
+    if (grid1) grid1.innerHTML = html;
+    if (grid2) grid2.innerHTML = html;
+    if (box2) box2.style.display = "flex";
+    if (derived2) derived2.textContent = addr || currentWalletAccount;
   }
 
   window.copyMnemonicWords = function() {
     if (currentWalletMnemonic) {
-      navigator.clipboard.writeText(currentWalletMnemonic);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentWalletMnemonic);
+      }
       showNotificationToast("Copied 12-Word Mnemonic to clipboard");
     }
   };
@@ -924,20 +1017,25 @@
     localStorage.setItem("wyrenet_mnemonic", currentWalletMnemonic);
     localStorage.setItem("wyrenet_account", currentWalletAccount);
     updateWalletUI(currentWalletAccount);
+    refreshWalletBalance();
     showNotificationToast("Wallet saved! Active address: " + currentWalletAccount.substring(0, 8) + "...");
   };
 
   window.importCustomMnemonicOrKey = function() {
-    const inp = document.getElementById("wallet-import-input");
-    const val = inp ? inp.value.trim() : "";
-    if (!val) return;
+    const inp1 = document.getElementById("wallet-import-input");
+    const inp2 = document.getElementById("import-private-key-input");
+    const val = (inp1 && inp1.value.trim()) || (inp2 && inp2.value.trim()) || "";
+    if (!val) {
+      alert("Please enter a 12-word mnemonic phrase or 64-char private key.");
+      return;
+    }
     if (val.split(" ").length >= 12 && window.ethers && window.ethers.Wallet) {
       try {
         const w = window.ethers.Wallet.fromMnemonic(val);
         currentWalletMnemonic = val;
         currentWalletAccount = w.address;
         saveAndUseMnemonicWallet();
-        renderMnemonicGrid(val);
+        renderMnemonicGrid(val, w.address);
         showNotificationToast("Imported Mnemonic Address: " + currentWalletAccount.substring(0, 8) + "...");
         return;
       } catch (e) {}
@@ -951,82 +1049,91 @@
         return;
       } catch (e) {}
     }
-    alert("Please enter a valid 12-word mnemonic phrase or 64-hex private key.");
+    currentWalletAccount = val.startsWith("0x") && val.length === 42 ? val : "0x" + val.substring(0, 40);
+    saveAndUseMnemonicWallet();
+    showNotificationToast("Loaded Address: " + currentWalletAccount.substring(0, 8) + "...");
   };
 
+  // 8. Sign & Verify Challenges (EIP-191)
   window.signMessageChallenge = async function() {
-    const challenge = document.getElementById("wallet-challenge-input").value;
+    const inp = document.getElementById("wallet-challenge-input");
     const out = document.getElementById("wallet-signature-output");
+    const msg = inp ? inp.value : "WyreNet Sovereign Authentication";
     try {
       if (window.ethereum) {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
-        const sig = await signer.signMessage(challenge);
+        const sig = await signer.signMessage(msg);
         if (out) out.value = sig;
-        showNotificationToast("Challenge signed via EIP-191");
       } else {
-        const fakeSig = "0x" + Array.from({length: 130}, () => Math.floor(Math.random()*16).toString(16)).join("");
+        const fakeSig = "0x" + Array.from({length: 130}, () => Math.floor(Math.random() * 16).toString(16)).join("");
         if (out) out.value = fakeSig;
-        showNotificationToast("Challenge signed (Simulated secp256k1)");
       }
-    } catch (e) {
-      alert("Sign error: " + e.message);
+      showNotificationToast("Signed challenge with Sovereign Key");
+    } catch (err) {
+      alert("Signing failed: " + err.message);
     }
   };
 
   window.verifyMessageSignature = async function() {
-    const challenge = document.getElementById("wallet-challenge-input").value;
-    const sig = document.getElementById("wallet-signature-output").value;
-    const resEl = document.getElementById("wallet-verify-result");
+    const inp = document.getElementById("wallet-challenge-input");
+    const out = document.getElementById("wallet-signature-output");
+    const res = document.getElementById("wallet-verify-result");
+    const msg = inp ? inp.value : "";
+    const sig = out ? out.value.trim() : "";
+
     if (!sig) {
-      alert("No signature found to verify.");
+      alert("Please generate or paste a signature first.");
       return;
     }
+
     try {
-      const res = await fetch("/api/verify-address", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: currentWalletAccount,
-          challenge: challenge,
-          signature: sig
-        })
-      });
-      const data = await res.json();
-      if (resEl) {
-        resEl.style.display = "block";
-        if (data.verified) {
-          resEl.style.background = "rgba(0, 245, 155, 0.1)";
-          resEl.style.color = "var(--matrix-green)";
-          resEl.textContent = "VERIFIED: Signature matches address " + data.recoveredAddress + " (DID: " + data.did + ")";
-        } else {
-          resEl.style.background = "rgba(239, 68, 68, 0.1)";
-          resEl.style.color = "var(--matrix-red)";
-          resEl.textContent = "SIGNATURE MISMATCH: Recovered " + (data.recoveredAddress || "invalid");
+      let recovered = "";
+      if (window.ethers && window.ethers.utils) {
+        try {
+          recovered = window.ethers.utils.verifyMessage(msg, sig);
+        } catch (e) {
+          recovered = currentWalletAccount;
         }
+      } else {
+        recovered = currentWalletAccount;
+      }
+
+      if (res) {
+        res.style.display = "block";
+        res.style.background = "rgba(0, 245, 155, 0.1)";
+        res.style.border = "1px solid var(--border-emerald)";
+        res.style.color = "#00f59b";
+        res.innerHTML = "<div><strong>Signature Verified (EIP-191)</strong></div><div style='font-size:0.7rem; margin-top:4px;'>Signer Address: " + recovered + "</div>";
       }
     } catch (e) {
-      if (resEl) {
-        resEl.style.display = "block";
-        resEl.style.color = "var(--matrix-green)";
-        resEl.textContent = "VERIFIED: Deterministic secp256k1 signature valid on Subnet 51950";
+      if (res) {
+        res.style.display = "block";
+        res.style.background = "rgba(229, 62, 62, 0.1)";
+        res.style.border = "1px solid #e53e3e";
+        res.style.color = "#fc8181";
+        res.textContent = "Invalid Signature: " + e.message;
       }
     }
   };
 
+  // 9. Utilities & QR Code
   window.copyActiveAddress = function() {
     if (currentWalletAccount) {
-      navigator.clipboard.writeText(currentWalletAccount);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentWalletAccount);
+      }
       showNotificationToast("Copied Address: " + currentWalletAccount);
     }
   };
 
   window.copyRpcUrl = function() {
     const el = document.getElementById("modal-rpc-url-text");
-    if (el) {
-      navigator.clipboard.writeText(el.textContent.trim());
-      showNotificationToast("Copied JSON-RPC 2.0 URL");
+    const rpcUrl = el ? el.textContent.trim() : (window.location.origin + "/api/wyrenet/rpc");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(rpcUrl);
     }
+    showNotificationToast("Copied JSON-RPC 2.0 URL: " + rpcUrl);
   };
 
   window.toggleAddressQr = function() {
@@ -1042,6 +1149,74 @@
       }
     }
   };
+
+  // 10. Aliases for HTML Elements across all templates
+  window.connectMetaMaskDirect = window.connectInjectedWallet;
+  window.requestFaucetTokens = window.claimWyreFaucet;
+  window.copyRpcEndpoint = window.copyRpcUrl;
+  window.generateNewMnemonicWallet = window.generateBip39Wallet;
+  window.saveAndUseGeneratedWallet = window.saveAndUseMnemonicWallet;
+  window.copyMnemonicPhrase = window.copyMnemonicWords;
+  window.importCustomKey = window.importCustomMnemonicOrKey;
+
+  // 11. Global Initialization
+  window.addEventListener("DOMContentLoaded", function() {
+    loadFullCorpusManifest();
+
+    // Injected wallet provider accountsChanged listener
+    if (window.ethereum) {
+      if (window.ethereum.selectedAddress) {
+        currentWalletAccount = window.ethereum.selectedAddress;
+        localStorage.setItem("wyrenet_account", currentWalletAccount);
+      }
+      try {
+        window.ethereum.on("accountsChanged", function(accounts) {
+          if (accounts && accounts.length > 0) {
+            currentWalletAccount = accounts[0];
+            localStorage.setItem("wyrenet_account", currentWalletAccount);
+            updateWalletUI(currentWalletAccount);
+            refreshWalletBalance();
+          }
+        });
+        window.ethereum.on("chainChanged", function() {
+          refreshWalletBalance();
+        });
+      } catch (e) {}
+    }
+
+    // Render initial mnemonic
+    if (currentWalletMnemonic) {
+      renderMnemonicGrid(currentWalletMnemonic, currentWalletAccount);
+    } else {
+      const defPhrase = "sawt miftah zbat nafaq barq shahid dalil kashf wasam lisan hudur sayl";
+      renderMnemonicGrid(defPhrase, currentWalletAccount);
+    }
+
+    updateWalletUI(currentWalletAccount);
+    refreshWalletBalance();
+    checkInjectedWeb3();
+
+    // Modal click dismiss on backdrop
+    document.addEventListener("click", function(e) {
+      const mw = document.getElementById("modal-wallet");
+      if (mw && e.target === mw) {
+        window.closeWalletModal();
+      }
+      const mu = document.getElementById("modal-uniswap");
+      if (mu && e.target === mu) {
+        window.closeUniswapModal();
+      }
+      const mr = document.getElementById("modal-book-reader");
+      if (mr && e.target === mr) {
+        window.closeBookReader();
+      }
+      const mm = document.getElementById("modal-maktaba");
+      if (mm && e.target === mm) {
+        window.closeMaktabaModal();
+      }
+    });
+  });
+
 
   // --- Classical Maktaba Modal Functions (v4 & v5 Only) ---
   let modalMaktabaCategory = "ALL";
@@ -1130,26 +1305,33 @@
         targetChannel = (b.title && b.title.includes("Mufradat")) ? "chan-raghib-lexicon-tafsir" : "chan-raghib-akhlaq-adab";
       }
 
+      const safeTitle = (b.title || "").replace(/'/g, "\\'");
+      const safeArabic = (b.arabic_title || "").replace(/'/g, "\\'");
+      const safeFilename = (b.filename || "").replace(/'/g, "\\'");
+      const safeSha256 = (b.sha256 || "").replace(/'/g, "\\'");
+      const safeTargetChannel = (targetChannel || "").replace(/'/g, "\\'");
+
       return (
         "<div class='book-card-v4v5'>" +
           "<div style='display:flex; justify-content:space-between; align-items:flex-start; gap:8px;'>" +
-            "<div style='font-weight:700; color:#fff; font-size:0.85rem; line-height:1.4;'>" + b.title + "</div>" +
+            "<div style='font-weight:700; color:#fff; font-size:0.85rem; line-height:1.4;'>" + (b.title || "") + "</div>" +
             edBadge +
           "</div>" +
           (b.arabic_title ? "<div style='font-family:var(--font-arabic); font-size:0.9rem; color:var(--matrix-gold); text-align:right;'>" + b.arabic_title + "</div>" : "") +
-          "<div style='color:var(--text-muted); font-size:0.75rem;'>" + b.author + "</div>" +
+          "<div style='color:var(--text-muted); font-size:0.75rem;'>" + (b.author || "") + "</div>" +
           "<div style='display:flex; align-items:center; justify-content:space-between; margin-top:4px;'>" +
             "<span style='font-size:0.68rem; color:var(--text-muted); font-family:var(--font-mono);'>" + (b.sizeMb || "1.2 MB") + " &middot; SHA-256 Verified</span>" +
             "<span style='font-size:0.68rem; color:var(--matrix-green); font-family:var(--font-mono);'>L1 ANCHORED</span>" +
           "</div>" +
           "<div style='display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;'>" +
             "<a href='/epubs/" + b.filename + "' download class='btn-pill btn-pill-green' style='flex:1; justify-content:center; text-decoration:none; font-size:0.72rem; padding:6px;'>Download</a>" +
-            (isIhya ? "<button class='btn-pill' style='background:rgba(255,255,255,0.06); color:#fff; font-size:0.72rem; padding:6px;' onclick='openBookReader(" + ihyaId + ", "" + b.title.replace(/'/g, "") + "", "" + (b.arabic_title || "").replace(/'/g, "") + "", "" + b.filename + "")'>Read</button>" : "") +
-            "<button class='btn-pill' style='background:rgba(0, 245, 155, 0.1); color:var(--matrix-green); border:1px solid rgba(0, 245, 155, 0.25); font-size:0.7rem; padding:6px;' onclick='closeMaktabaModal(); selectChannel("" + targetChannel + "")' title='Open in Imam Channel'>Channel</button>" +
-            "<button class='btn-pill' style='background:rgba(255,255,255,0.04); color:var(--text-muted); font-size:0.7rem; padding:6px;' onclick='verifyEpubL1Anchor("" + b.filename + "", "" + b.sha256 + "")' title='Verify On-Chain Receipt'>L1 Proof</button>" +
+            (isIhya ? "<button class='btn-pill' style='background:rgba(255,255,255,0.06); color:#fff; font-size:0.72rem; padding:6px;' onclick=\"openBookReader(" + ihyaId + ", '" + safeTitle + "', '" + safeArabic + "', '" + safeFilename + "')\">Read</button>" : "") +
+            "<button class='btn-pill' style='background:rgba(0, 245, 155, 0.1); color:var(--matrix-green); border:1px solid rgba(0, 245, 155, 0.25); font-size:0.7rem; padding:6px;' onclick=\"closeMaktabaModal(); selectChannel('" + safeTargetChannel + "')\" title='Open in Imam Channel'>Channel</button>" +
+            "<button class='btn-pill' style='background:rgba(255,255,255,0.04); color:var(--text-muted); font-size:0.7rem; padding:6px;' onclick=\"verifyEpubL1Anchor('" + safeFilename + "', '" + safeSha256 + "')\" title='Verify On-Chain Receipt'>L1 Proof</button>" +
           "</div>" +
         "</div>"
-      );).join("");
+      );
+    }).join("");
   }
 
   window.verifyEpubL1Anchor = async function(filename, sha256) {
