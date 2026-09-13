@@ -48,10 +48,10 @@
         "alice@mesh",
         "alice@wyrenet-direct"
       ],
-      "registeredAt": 1789312003668,
-      "isoRegisteredAt": "2026-09-13T15:06:43.668Z",
-      "blockHeight": 41486,
-      "txHash": "0x72378a0ae2b040025dda700f4a9e6780cb58e188537b12c4f7a0db423436c381",
+      "registeredAt": 1789336931673,
+      "isoRegisteredAt": "2026-09-13T22:02:11.673Z",
+      "blockHeight": 53950,
+      "txHash": "0xa478c6d31f64fd469264ae7beec23a5aba9eb40550b7419d69bd5e44dcfcf6d2",
       "chainId": 51950,
       "reputation": 100,
       "isVerified": true
@@ -206,7 +206,73 @@
       "chainId": 51950,
       "timestamp": 1789312003673,
       "isoTimestamp": "2026-09-13T15:06:43.673Z"
+    },
+    "0x0d7875d7b6c7d998cab5f43289360b48b0bb2d4a262fe187c2ba39e0e76e3d38": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x2dac383fab2ec79a123da6ca69e7b2879648a239121020c6c919edb6c61284f9",
+      "txHash": "0x0d7875d7b6c7d998cab5f43289360b48b0bb2d4a262fe187c2ba39e0e76e3d38",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "blockHeight": 46536,
+      "chainId": 51950,
+      "timestamp": 1789322103529,
+      "isoTimestamp": "2026-09-13T17:55:03.529Z"
+    },
+    "0x2dac383fab2ec79a123da6ca69e7b2879648a239121020c6c919edb6c61284f9": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x2dac383fab2ec79a123da6ca69e7b2879648a239121020c6c919edb6c61284f9",
+      "txHash": "0x0d7875d7b6c7d998cab5f43289360b48b0bb2d4a262fe187c2ba39e0e76e3d38",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "blockHeight": 46536,
+      "chainId": 51950,
+      "timestamp": 1789322103529,
+      "isoTimestamp": "2026-09-13T17:55:03.529Z"
+    },
+    "0xc2096f188087df36464c55023501712c1f97e6ea9c5522bf7e0fec2fd11c499b": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x95f4247e94395df4e4de6c06a70e09839ab195a63e60ce71fd6f405b9663a318",
+      "txHash": "0xc2096f188087df36464c55023501712c1f97e6ea9c5522bf7e0fec2fd11c499b",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "blockHeight": 47237,
+      "chainId": 51950,
+      "timestamp": 1789323504581,
+      "isoTimestamp": "2026-09-13T18:18:24.581Z"
+    },
+    "0x95f4247e94395df4e4de6c06a70e09839ab195a63e60ce71fd6f405b9663a318": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x95f4247e94395df4e4de6c06a70e09839ab195a63e60ce71fd6f405b9663a318",
+      "txHash": "0xc2096f188087df36464c55023501712c1f97e6ea9c5522bf7e0fec2fd11c499b",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "blockHeight": 47237,
+      "chainId": 51950,
+      "timestamp": 1789323504581,
+      "isoTimestamp": "2026-09-13T18:18:24.581Z"
+    },
+    "0xf834c9d5c19f931f53bb65d95cd474d94ab5c330c7ff43dfa4f0769d1a728a5f": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x730f8d2009eed7610d992a1b5a067e838e6e46715be090f86832086a8a0601e9",
+      "txHash": "0xf834c9d5c19f931f53bb65d95cd474d94ab5c330c7ff43dfa4f0769d1a728a5f",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "blockHeight": 53950,
+      "chainId": 51950,
+      "timestamp": 1789336931678,
+      "isoTimestamp": "2026-09-13T22:02:11.678Z"
+    },
+    "0x730f8d2009eed7610d992a1b5a067e838e6e46715be090f86832086a8a0601e9": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x730f8d2009eed7610d992a1b5a067e838e6e46715be090f86832086a8a0601e9",
+      "txHash": "0xf834c9d5c19f931f53bb65d95cd474d94ab5c330c7ff43dfa4f0769d1a728a5f",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "blockHeight": 53950,
+      "chainId": 51950,
+      "timestamp": 1789336931678,
+      "isoTimestamp": "2026-09-13T22:02:11.678Z"
     }
   },
-  "updatedAt": "2026-09-13T15:06:43.673Z"
+  "updatedAt": "2026-09-13T22:02:11.678Z"
 }
