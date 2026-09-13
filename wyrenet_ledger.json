@@ -55,6 +55,23 @@
       "chainId": 51950,
       "reputation": 100,
       "isVerified": true
+    },
+    "did:wyre:0xc5a58565452505e5c5a58565452505e5c5a58565": {
+      "did": "did:wyre:0xc5a58565452505e5c5a58565452505e5c5a58565",
+      "address": "0xc5a58565452505e5c5a58565452505e5c5a58565",
+      "pubKey": null,
+      "ecdhPubJwk": null,
+      "ecdsaPubJwk": null,
+      "rendezvousHints": [
+        "tariq@34ec8d07"
+      ],
+      "registeredAt": 1789288054873,
+      "isoRegisteredAt": "2026-09-13T08:27:34.873Z",
+      "blockHeight": 29512,
+      "txHash": "0xab474ad42574a577fa6f9b9e0d1b54901f352518af3d39ed3e947c917d934199",
+      "chainId": 51950,
+      "reputation": 100,
+      "isVerified": true
     }
   },
   "notarizations": {
@@ -125,5 +142,5 @@
       "isoTimestamp": "2026-09-13T08:24:14.794Z"
     }
   },
-  "updatedAt": "2026-09-13T08:24:14.794Z"
+  "updatedAt": "2026-09-13T08:27:34.873Z"
 }

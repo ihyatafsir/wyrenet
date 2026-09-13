@@ -189,7 +189,10 @@ export default function App() {
               {props => (
                 <WelcomeScreen
                   {...props}
-                  onComplete={() => setHasIdentity(true)}
+                  onComplete={() => {
+                    setHasIdentity(true);
+                    props.navigation.replace('Main');
+                  }}
                 />
               )}
             </Stack.Screen>

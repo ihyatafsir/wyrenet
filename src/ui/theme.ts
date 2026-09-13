@@ -125,6 +125,15 @@ export const connectionQuality = {
     none: { color: '#ff0000', bars: 0, label: 'مُنْقَطِع' },
 };
 
+export const THEME = {
+    colors,
+    spacing,
+    borderRadius,
+    typography,
+    shadows,
+    connectionQuality,
+};
+
 export default {
     colors,
     spacing,

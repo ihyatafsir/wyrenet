@@ -32,7 +32,8 @@ import WyreWalletEngine, {
   TransactionRecord
 } from '../crypto/WyreWalletEngine';
 import WyreAIEngine, { AIAuditResult } from '../ai/WyreAIEngine';
-import { THEME } from '../ui/theme';
+import { THEME, colors } from '../ui/theme';
+const UI_COLORS = THEME?.colors || colors || { primary: "#00ff88", textSecondary: "#a0a0b0" };
 
 export const WalletScreen: React.FC = () => {
   const [wallet, setWallet] = useState<WalletState | null>(null);
@@ -248,7 +249,7 @@ export const WalletScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={THEME.colors.primary} />
+        <ActivityIndicator size="large" color={UI_COLORS.primary} />
         <Text style={styles.loadingText}>Initializing Sovereign Vault...</Text>
       </View>
     );
@@ -392,7 +393,7 @@ export const WalletScreen: React.FC = () => {
             <TextInput
               style={styles.modalInput}
               placeholder="Recipient Address (0x...)"
-              placeholderTextColor={THEME.colors.textSecondary}
+              placeholderTextColor={UI_COLORS.textSecondary}
               value={recipient}
               onChangeText={setRecipient}
               autoCapitalize="none"
@@ -401,7 +402,7 @@ export const WalletScreen: React.FC = () => {
             <TextInput
               style={styles.modalInput}
               placeholder="Amount (e.g. 1.0)"
-              placeholderTextColor={THEME.colors.textSecondary}
+              placeholderTextColor={UI_COLORS.textSecondary}
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
@@ -416,7 +417,7 @@ export const WalletScreen: React.FC = () => {
               <Switch
                 value={isGasless}
                 onValueChange={setIsGasless}
-                trackColor={{ false: '#333', true: THEME.colors.primary }}
+                trackColor={{ false: '#333', true: UI_COLORS.primary }}
                 thumbColor="#fff"
               />
             </View>
@@ -429,7 +430,7 @@ export const WalletScreen: React.FC = () => {
             </TouchableOpacity>
 
             {aiAudit && (
-              <View style={[styles.auditBox, { borderColor: aiAudit.isSafe ? THEME.colors.primary : '#ef4444' }]}>
+              <View style={[styles.auditBox, { borderColor: aiAudit.isSafe ? UI_COLORS.primary : '#ef4444' }]}>
                 <Text style={styles.auditStatus}>
                   {aiAudit.isSafe ? 'VERIFIED SAFE (Score: ' + (100 - aiAudit.riskScore) + '/100)' : 'RISK DETECTED'}
                 </Text>
@@ -578,7 +579,7 @@ export const WalletScreen: React.FC = () => {
             <TextInput
               style={[styles.modalInput, styles.multilineInput]}
               placeholder={importType === 'mnemonic' ? 'Enter 12 space-separated words' : 'Enter 64-character hex private key'}
-              placeholderTextColor={THEME.colors.textSecondary}
+              placeholderTextColor={UI_COLORS.textSecondary}
               value={importInput}
               onChangeText={setImportInput}
               multiline
@@ -607,7 +608,7 @@ export const WalletScreen: React.FC = () => {
             <TextInput
               style={styles.modalInput}
               placeholder="Peer Address (0x...)"
-              placeholderTextColor={THEME.colors.textSecondary}
+              placeholderTextColor={UI_COLORS.textSecondary}
               value={verifyAddressInput}
               onChangeText={setVerifyAddressInput}
               autoCapitalize="none"
@@ -616,7 +617,7 @@ export const WalletScreen: React.FC = () => {
             <TextInput
               style={styles.modalInput}
               placeholder="Challenge Text"
-              placeholderTextColor={THEME.colors.textSecondary}
+              placeholderTextColor={UI_COLORS.textSecondary}
               value={verifyChallengeInput}
               onChangeText={setVerifyChallengeInput}
               autoCapitalize="none"
@@ -625,7 +626,7 @@ export const WalletScreen: React.FC = () => {
             <TextInput
               style={[styles.modalInput, styles.multilineInput]}
               placeholder="Signature Hex (0x...)"
-              placeholderTextColor={THEME.colors.textSecondary}
+              placeholderTextColor={UI_COLORS.textSecondary}
               value={verifySignatureInput}
               onChangeText={setVerifySignatureInput}
               multiline
@@ -637,7 +638,7 @@ export const WalletScreen: React.FC = () => {
             </TouchableOpacity>
 
             {verifyResult && (
-              <View style={[styles.auditBox, { borderColor: verifyResult.verified ? THEME.colors.primary : '#ef4444', marginTop: 12 }]}>
+              <View style={[styles.auditBox, { borderColor: verifyResult.verified ? UI_COLORS.primary : '#ef4444', marginTop: 12 }]}>
                 <Text style={styles.auditStatus}>
                   {verifyResult.verified ? 'SIGNATURE VALID - IDENTITY VERIFIED' : 'VERIFICATION FAILED'}
                 </Text>
@@ -664,89 +665,89 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#050B07' },
   contentContainer: { padding: 16, paddingBottom: 40 },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#050B07' },
-  loadingText: { color: THEME.colors.primary, marginTop: 12, fontSize: 14, fontFamily: 'monospace' },
+  loadingText: { color: UI_COLORS.primary, marginTop: 12, fontSize: 14, fontFamily: 'monospace' },
   networkHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   networkBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0, 255, 102, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(0, 255, 102, 0.3)' },
-  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: THEME.colors.primary, marginRight: 8 },
-  networkBadgeText: { color: THEME.colors.primary, fontSize: 12, fontWeight: '700' },
+  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: UI_COLORS.primary, marginRight: 8 },
+  networkBadgeText: { color: UI_COLORS.primary, fontSize: 12, fontWeight: '700' },
   switchNetButton: { paddingHorizontal: 10, paddingVertical: 6 },
-  switchNetText: { color: THEME.colors.textSecondary, fontSize: 12, textDecorationLine: 'underline' },
+  switchNetText: { color: UI_COLORS.textSecondary, fontSize: 12, textDecorationLine: 'underline' },
   balanceCard: { backgroundColor: 'rgba(10, 25, 15, 0.85)', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: 'rgba(0, 255, 102, 0.3)', marginBottom: 20 },
-  balanceLabel: { color: THEME.colors.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
+  balanceLabel: { color: UI_COLORS.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
   balanceRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 8 },
   balanceNumber: { fontSize: 36, fontWeight: '800', color: '#FFFFFF', fontFamily: 'monospace' },
-  balanceSymbol: { fontSize: 16, fontWeight: '700', color: THEME.colors.primary, marginLeft: 8 },
+  balanceSymbol: { fontSize: 16, fontWeight: '700', color: UI_COLORS.primary, marginLeft: 8 },
   blockHeightText: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 4, fontFamily: 'monospace' },
   addressBox: { backgroundColor: 'rgba(0, 0, 0, 0.5)', padding: 12, borderRadius: 8, marginTop: 16, borderWidth: 1, borderColor: 'rgba(0, 255, 102, 0.15)' },
-  addressLabel: { color: THEME.colors.primary, fontSize: 10, fontWeight: '700' },
+  addressLabel: { color: UI_COLORS.primary, fontSize: 10, fontWeight: '700' },
   addressText: { color: '#FFFFFF', fontSize: 12, marginTop: 4, fontFamily: 'monospace' },
   actionRow: { flexDirection: 'row', marginTop: 16, gap: 10 },
   actionBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  sendBtn: { backgroundColor: THEME.colors.primary },
+  sendBtn: { backgroundColor: UI_COLORS.primary },
   sendBtnText: { color: '#000000', fontWeight: '800', fontSize: 13 },
-  receiveBtn: { backgroundColor: 'rgba(0, 255, 102, 0.15)', borderWidth: 1, borderColor: THEME.colors.primary },
-  receiveBtnText: { color: THEME.colors.primary, fontWeight: '700', fontSize: 13 },
+  receiveBtn: { backgroundColor: 'rgba(0, 255, 102, 0.15)', borderWidth: 1, borderColor: UI_COLORS.primary },
+  receiveBtnText: { color: UI_COLORS.primary, fontWeight: '700', fontSize: 13 },
   refreshBtn: { flex: 0.5, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
   refreshBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
   sectionHeader: { marginTop: 12, marginBottom: 12 },
-  sectionTitle: { color: THEME.colors.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 1.2 },
+  sectionTitle: { color: UI_COLORS.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 1.2 },
   toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   toolCard: { width: '48%', backgroundColor: 'rgba(15, 30, 20, 0.6)', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0, 255, 102, 0.2)' },
   toolCardFull: { width: '100%' },
-  toolCardTitle: { color: THEME.colors.primary, fontSize: 12, fontWeight: '800' },
-  toolCardSub: { color: THEME.colors.textSecondary, fontSize: 10, marginTop: 4 },
+  toolCardTitle: { color: UI_COLORS.primary, fontSize: 12, fontWeight: '800' },
+  toolCardSub: { color: UI_COLORS.textSecondary, fontSize: 10, marginTop: 4 },
   emptyHistory: { padding: 24, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8 },
-  emptyHistoryText: { color: THEME.colors.textSecondary, fontSize: 12 },
+  emptyHistoryText: { color: UI_COLORS.textSecondary, fontSize: 12 },
   txCard: { backgroundColor: 'rgba(15, 30, 20, 0.6)', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0, 255, 102, 0.15)', marginBottom: 10 },
   txHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  txType: { color: THEME.colors.primary, fontWeight: '700', fontSize: 12 },
+  txType: { color: UI_COLORS.primary, fontWeight: '700', fontSize: 12 },
   txAmount: { color: '#FFFFFF', fontWeight: '800', fontSize: 14, fontFamily: 'monospace' },
-  txHash: { color: THEME.colors.textSecondary, fontSize: 11, marginTop: 6, fontFamily: 'monospace' },
+  txHash: { color: UI_COLORS.textSecondary, fontSize: 11, marginTop: 6, fontFamily: 'monospace' },
   txFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
   txNetwork: { color: 'rgba(255,255,255,0.5)', fontSize: 10 },
   gaslessBadge: { backgroundColor: 'rgba(0, 255, 102, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  gaslessBadgeText: { color: THEME.colors.primary, fontSize: 9, fontWeight: '700' },
+  gaslessBadgeText: { color: UI_COLORS.primary, fontSize: 9, fontWeight: '700' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 20 },
-  modalCard: { backgroundColor: '#0A1810', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: THEME.colors.primary },
+  modalCard: { backgroundColor: '#0A1810', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: UI_COLORS.primary },
   modalTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  modalSub: { color: THEME.colors.primary, fontSize: 12, textAlign: 'center', marginTop: 4, marginBottom: 16 },
+  modalSub: { color: UI_COLORS.primary, fontSize: 12, textAlign: 'center', marginTop: 4, marginBottom: 16 },
   modalInput: { backgroundColor: '#050B07', borderWidth: 1, borderColor: 'rgba(0, 255, 102, 0.3)', borderRadius: 8, padding: 12, color: '#FFFFFF', fontSize: 13, marginBottom: 12, fontFamily: 'monospace' },
   multilineInput: { height: 80, textAlignVertical: 'top' },
   gaslessRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, marginBottom: 12 },
   gaslessTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  gaslessSub: { color: THEME.colors.textSecondary, fontSize: 10 },
-  aiAuditBtn: { backgroundColor: 'rgba(0, 255, 102, 0.1)', borderWidth: 1, borderColor: THEME.colors.primary, paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginBottom: 12 },
-  aiAuditBtnText: { color: THEME.colors.primary, fontSize: 11, fontWeight: '800' },
+  gaslessSub: { color: UI_COLORS.textSecondary, fontSize: 10 },
+  aiAuditBtn: { backgroundColor: 'rgba(0, 255, 102, 0.1)', borderWidth: 1, borderColor: UI_COLORS.primary, paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginBottom: 12 },
+  aiAuditBtnText: { color: UI_COLORS.primary, fontSize: 11, fontWeight: '800' },
   auditBox: { backgroundColor: '#050B07', padding: 10, borderRadius: 8, borderWidth: 1, marginBottom: 12 },
-  auditStatus: { color: THEME.colors.primary, fontSize: 11, fontWeight: '800' },
+  auditStatus: { color: UI_COLORS.primary, fontSize: 11, fontWeight: '800' },
   auditSummary: { color: '#FFFFFF', fontSize: 11, marginTop: 4 },
   modalBtnRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
   modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   cancelBtn: { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
   cancelBtnText: { color: '#FFFFFF', fontWeight: '700' },
-  confirmBtn: { backgroundColor: THEME.colors.primary, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  confirmBtn: { backgroundColor: UI_COLORS.primary, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   confirmBtnText: { color: '#000000', fontWeight: '800' },
   receiveBox: { backgroundColor: '#050B07', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0, 255, 102, 0.2)', marginBottom: 16 },
   receiveAddress: { color: '#FFFFFF', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' },
-  copyAddressBtn: { backgroundColor: THEME.colors.primary, paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 10 },
+  copyAddressBtn: { backgroundColor: UI_COLORS.primary, paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginBottom: 10 },
   copyAddressBtnText: { color: '#000000', fontWeight: '800' },
   closeBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
-  closeBtnText: { color: THEME.colors.textSecondary, fontSize: 12 },
+  closeBtnText: { color: UI_COLORS.textSecondary, fontSize: 12 },
   warningText: { color: '#f59e0b', fontSize: 11, marginBottom: 14, textAlign: 'center' },
   keyDisplayBox: { backgroundColor: '#050B07', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#ef4444', marginBottom: 16 },
   keyDisplayText: { color: '#FFFFFF', fontSize: 12, fontFamily: 'monospace', textAlign: 'center' },
   keyActionRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  keyActionBtn: { flex: 1, backgroundColor: 'rgba(0, 255, 102, 0.15)', borderWidth: 1, borderColor: THEME.colors.primary, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
-  keyActionBtnText: { color: THEME.colors.primary, fontWeight: '700', fontSize: 12 },
+  keyActionBtn: { flex: 1, backgroundColor: 'rgba(0, 255, 102, 0.15)', borderWidth: 1, borderColor: UI_COLORS.primary, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  keyActionBtnText: { color: UI_COLORS.primary, fontWeight: '700', fontSize: 12 },
   wordsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   wordPill: { width: '31%', backgroundColor: '#050B07', padding: 8, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(0, 255, 102, 0.2)', flexDirection: 'row', alignItems: 'center' },
-  wordIndex: { color: THEME.colors.primary, fontSize: 10, fontWeight: '700', marginRight: 4 },
+  wordIndex: { color: UI_COLORS.primary, fontSize: 10, fontWeight: '700', marginRight: 4 },
   wordText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
   importTabRow: { flexDirection: 'row', marginBottom: 14, gap: 10 },
   importTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  importTabActive: { borderColor: THEME.colors.primary, backgroundColor: 'rgba(0, 255, 102, 0.1)' },
-  importTabText: { color: THEME.colors.textSecondary, fontSize: 12 },
-  importTabTextActive: { color: THEME.colors.primary, fontWeight: '700' }
+  importTabActive: { borderColor: UI_COLORS.primary, backgroundColor: 'rgba(0, 255, 102, 0.1)' },
+  importTabText: { color: UI_COLORS.textSecondary, fontSize: 12 },
+  importTabTextActive: { color: UI_COLORS.primary, fontWeight: '700' }
 });
 
 export default WalletScreen;
