@@ -482,3 +482,99 @@ export const SCHOLAR_CHANNELS: ScholarChannel[] = [
     ]
   }
 ];
+
+// ==============================================================================
+// Classical Corpus v4 & v5 Authenticated Digital Manifest
+// Populated directly from wyresup / wyrenet_classical_corpus_l1_manifest.json
+// ==============================================================================
+
+import manifest from './classicalCorpusManifest.json';
+
+export interface CorpusBook {
+  index: number;
+  filename: string;
+  title: string;
+  arabic_title: string;
+  author: string;
+  category: string;
+  channelId: string;
+  sizeMb: string;
+  version: 'v4' | 'v5';
+  edition: string;
+  edition_format: string;
+  is_pure_en: boolean;
+  is_bilingual: boolean;
+  is_v4_v5: boolean;
+  imam_key: 'razi' | 'ghazali' | 'nawawi' | 'raghib' | 'heritage';
+  topic_key: string;
+  downloadUrl: string;
+}
+
+export const CLASSICAL_CORPUS: CorpusBook[] = (manifest as any).books.map((b: any) => ({
+  ...b,
+  downloadUrl: `/epubs/${b.filename}`,
+}));
+
+export interface ImamInfo {
+  key: 'all' | 'razi' | 'ghazali' | 'nawawi' | 'raghib' | 'heritage';
+  nameEn: string;
+  nameAr: string;
+  years: string;
+  channelId: string;
+  v4Count: number;
+  v5Count: number;
+  totalCount: number;
+}
+
+export const IMAMS_METADATA: ImamInfo[] = [
+  {
+    key: 'razi',
+    nameEn: 'Imam Fakhr al-Din al-Razi',
+    nameAr: 'الإمام فخر الدين الرازي',
+    years: '544–606 AH',
+    channelId: 'imam-razi',
+    v4Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'razi' && b.version === 'v4').length,
+    v5Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'razi' && b.version === 'v5').length,
+    totalCount: CLASSICAL_CORPUS.filter(b => b.imam_key === 'razi').length,
+  },
+  {
+    key: 'ghazali',
+    nameEn: 'Imam Abu Hamid al-Ghazali',
+    nameAr: 'الإمام أبو حامد الغزالي',
+    years: '450–505 AH',
+    channelId: 'abuhamed',
+    v4Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'ghazali' && b.version === 'v4').length,
+    v5Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'ghazali' && b.version === 'v5').length,
+    totalCount: CLASSICAL_CORPUS.filter(b => b.imam_key === 'ghazali').length,
+  },
+  {
+    key: 'nawawi',
+    nameEn: 'Imam Yahya al-Nawawi',
+    nameAr: 'الإمام يحيى بن شرف النووي',
+    years: '631–676 AH',
+    channelId: 'imam-nawawi',
+    v4Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'nawawi' && b.version === 'v4').length,
+    v5Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'nawawi' && b.version === 'v5').length,
+    totalCount: CLASSICAL_CORPUS.filter(b => b.imam_key === 'nawawi').length,
+  },
+  {
+    key: 'raghib',
+    nameEn: 'Imam al-Raghib al-Isfahani',
+    nameAr: 'الإمام الراغب الأصفهاني',
+    years: 'd. 502 AH',
+    channelId: 'classical-heritage',
+    v4Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'raghib' && b.version === 'v4').length,
+    v5Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'raghib' && b.version === 'v5').length,
+    totalCount: CLASSICAL_CORPUS.filter(b => b.imam_key === 'raghib').length,
+  },
+  {
+    key: 'heritage',
+    nameEn: 'Classical Heritage & Scholars',
+    nameAr: 'تراث العلماء والأئمة',
+    years: 'Classical Corpus',
+    channelId: 'classical-heritage',
+    v4Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'heritage' && b.version === 'v4').length,
+    v5Count: CLASSICAL_CORPUS.filter(b => b.imam_key === 'heritage' && b.version === 'v5').length,
+    totalCount: CLASSICAL_CORPUS.filter(b => b.imam_key === 'heritage').length,
+  },
+];

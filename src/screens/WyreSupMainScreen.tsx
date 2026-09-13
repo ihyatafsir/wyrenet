@@ -154,6 +154,42 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     content: "whatever",
     channelId: "general",
   },
+  {
+    id: "razi_seed_1",
+    author: "ibn-manzur",
+    fingerprint: "ibn-manzur@lisan",
+    badges: [{ label: "ZBAT", type: "zbat" }, { label: "E2EE", type: "e2ee" }, { label: "L1", type: "l1" }],
+    time: "08:00 AM",
+    content: "[CORPUS v4/v5] Sovereign Library of Imam Fakhr al-Din al-Razi (544-606 AH) anchored onto Avalanche Subnet 51950. 109 authenticated masterworks available: Complete 32-in-1 Tafsir al-Kabir, Al-Matalib al-Aliyyah (9 vols), Asas al-Taqdis, and Al-Mahsul. Access full catalog in the Library tab.",
+    channelId: "imam-razi",
+  },
+  {
+    id: "ghazali_seed_1",
+    author: "ibn-manzur",
+    fingerprint: "ibn-manzur@lisan",
+    badges: [{ label: "ZBAT", type: "zbat" }, { label: "E2EE", type: "e2ee" }, { label: "L1", type: "l1" }],
+    time: "08:00 AM",
+    content: "[CORPUS v4/v5] Sovereign Library of Imam Abu Hamid al-Ghazali (450-505 AH). 46 authenticated masterworks available: Complete 40 Books of Ihya Ulum al-Din, Tahafut al-Falasifa (76 sections), Al-Mustasfa, Al-Iqtisad, and Al-Munqidh min al-Dalal.",
+    channelId: "abuhamed",
+  },
+  {
+    id: "nawawi_seed_1",
+    author: "ibn-manzur",
+    fingerprint: "ibn-manzur@lisan",
+    badges: [{ label: "ZBAT", type: "zbat" }, { label: "E2EE", type: "e2ee" }, { label: "L1", type: "l1" }],
+    time: "08:00 AM",
+    content: "[CORPUS v4/v5] Sovereign Library of Imam Yahya ibn Sharaf al-Nawawi (631-676 AH). 38 authenticated masterworks available: Kitab al-Adhkar, Riyad al-Salihin, Al-Tibyan, Minhaj al-Talibin, and Adab al-Fatwa wa al-Mufti.",
+    channelId: "imam-nawawi",
+  },
+  {
+    id: "heritage_seed_1",
+    author: "ibn-manzur",
+    fingerprint: "ibn-manzur@lisan",
+    badges: [{ label: "ZBAT", type: "zbat" }, { label: "E2EE", type: "e2ee" }, { label: "L1", type: "l1" }],
+    time: "08:00 AM",
+    content: "[CORPUS v4/v5] Classical Heritage & Lexicon: Imam al-Raghib al-Isfahani (Mufradat Alfaz al-Quran, Tafsil al-Nashatayn) and Qadi Iyad (Al-Shifa bi-Tarif Huquq al-Mustafa). 53 authenticated masterworks anchored.",
+    channelId: "classical-heritage",
+  },
 ];
 
 export default function WyreSupMainScreen() {
