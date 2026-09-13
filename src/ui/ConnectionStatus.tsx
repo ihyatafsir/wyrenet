@@ -46,9 +46,9 @@ export function ConnectionStatus({
     }, [connected, pulseAnim]);
 
     const typeIcons = {
-        tcp: '🔌',
-        ws: '🌐',
-        ble: '📡',
+        tcp: '[TCP]',
+        ws: '[WS]',
+        ble: '[BLE]',
     };
 
     const typeLabels = {
@@ -141,13 +141,13 @@ export function StatusBar({
             {/* Hosting indicator */}
             {isHosting && (
                 <View style={styles.hostingBadge}>
-                    <Text style={styles.hostingText}>📡 مُسْتَضِيف</Text>
+                    <Text style={styles.hostingText}>[HOST] مُسْتَضِيف</Text>
                 </View>
             )}
 
             {/* Peer count */}
             <View style={styles.peerCount}>
-                <Text style={styles.peerCountText}>👥 {peerCount}</Text>
+                <Text style={styles.peerCountText}>PEERS: {peerCount}</Text>
             </View>
         </View>
     );

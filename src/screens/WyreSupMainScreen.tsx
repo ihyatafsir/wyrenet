@@ -170,7 +170,22 @@ export default function WyreSupMainScreen() {
 
   useEffect(() => {
     loadUserIdentity();
+    loadSavedMessages();
   }, []);
+
+  const loadSavedMessages = async () => {
+    try {
+      const stored = await AsyncStorage.getItem("@wyrenet_chat_messages");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch {
+      // Keep defaults
+    }
+  };
 
   const loadUserIdentity = async () => {
     try {
@@ -239,7 +254,11 @@ export default function WyreSupMainScreen() {
       channelId: currentChannel.id,
     };
 
-    setMessages(prev => [...prev, newMsg]);
+    setMessages(prev => {
+      const updated = [...prev, newMsg];
+      AsyncStorage.setItem("@wyrenet_chat_messages", JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
     setInputText("");
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -285,7 +304,7 @@ export default function WyreSupMainScreen() {
             onPress={() => navigation.navigate("Wallet")}
             activeOpacity={0.7}
           >
-            <Text style={styles.membersBtnText}>👥</Text>
+            <Text style={styles.membersBtnText}>PEERS</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -355,7 +374,9 @@ export default function WyreSupMainScreen() {
               <Text style={styles.attachBtnText}>+</Text>
             </TouchableOpacity>
 
-            <Text style={styles.shieldIcon}>🛡️</Text>
+            <View style={styles.shieldBadge}>
+              <Text style={styles.shieldBadgeText}>E2EE</Text>
+            </View>
 
             <TextInput
               style={styles.composerInput}
@@ -373,7 +394,7 @@ export default function WyreSupMainScreen() {
               onPress={handleSendMessage}
               activeOpacity={0.7}
             >
-              <Text style={styles.sendBtnText}>➤</Text>
+              <Text style={styles.sendBtnText}>&gt;</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -434,7 +455,7 @@ export default function WyreSupMainScreen() {
             <ScrollView style={styles.drawerScroll}>
               {/* Category: TEXT CHANNELS */}
               <View style={styles.categoryHeader}>
-                <Text style={styles.categoryTitle}>▾ 💬 TEXT CHANNELS</Text>
+                <Text style={styles.categoryTitle}>▾ TEXT CHANNELS</Text>
                 <Text style={styles.categoryAdd}>+</Text>
               </View>
 
@@ -474,7 +495,7 @@ export default function WyreSupMainScreen() {
 
               {/* Category: DIRECT MESSAGES */}
               <View style={[styles.categoryHeader, { marginTop: 16 }]}>
-                <Text style={styles.categoryTitle}>▾ 🔒 DIRECT MESSAGES</Text>
+                <Text style={styles.categoryTitle}>▾ DIRECT MESSAGES</Text>
               </View>
               {CHANNELS.filter(c => c.category === "dm").map(ch => (
                 <TouchableOpacity
@@ -483,14 +504,14 @@ export default function WyreSupMainScreen() {
                   onPress={() => handleSelectChannel(ch)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.channelHash}>🤖</Text>
+                  <Text style={styles.channelHash}>@</Text>
                   <Text style={styles.channelName}>{ch.name}</Text>
                 </TouchableOpacity>
               ))}
 
               {/* Category: VOICE & SAWT */}
               <View style={[styles.categoryHeader, { marginTop: 16 }]}>
-                <Text style={styles.categoryTitle}>▾ 🔊 VOICE & SAWT</Text>
+                <Text style={styles.categoryTitle}>▾ VOICE & SAWT</Text>
                 <Text style={styles.categoryAdd}>+</Text>
               </View>
               {CHANNELS.filter(c => c.category === "voice").map(ch => (
@@ -503,14 +524,14 @@ export default function WyreSupMainScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.channelHash}>📢</Text>
+                  <Text style={styles.channelHash}>~</Text>
                   <Text style={styles.channelName}>{ch.name}</Text>
                 </TouchableOpacity>
               ))}
 
               {/* Category: SOVEREIGN L1 */}
               <View style={[styles.categoryHeader, { marginTop: 16 }]}>
-                <Text style={styles.categoryTitle}>▾ 🔺 SOVEREIGN L1</Text>
+                <Text style={styles.categoryTitle}>▾ SOVEREIGN L1</Text>
               </View>
               <TouchableOpacity
                 style={styles.channelItem}
@@ -520,7 +541,7 @@ export default function WyreSupMainScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.channelHash}>💼</Text>
+                <Text style={styles.channelHash}>[V]</Text>
                 <Text style={styles.channelName}>خَزِينَة (Wallet)</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -531,7 +552,7 @@ export default function WyreSupMainScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.channelHash}>🛡️</Text>
+                <Text style={styles.channelHash}>[T]</Text>
                 <Text style={styles.channelName}>نَفَق (Tunnel)</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -542,7 +563,7 @@ export default function WyreSupMainScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.channelHash}>📚</Text>
+                <Text style={styles.channelHash}>[B]</Text>
                 <Text style={styles.channelName}>مَكْتَبَة (Library)</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -553,7 +574,7 @@ export default function WyreSupMainScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.channelHash}>🕶️</Text>
+                <Text style={styles.channelHash}>[S]</Text>
                 <Text style={styles.channelName}>مَلَاذ (Stealth)</Text>
               </TouchableOpacity>
             </ScrollView>
@@ -574,7 +595,7 @@ export default function WyreSupMainScreen() {
                   navigation.navigate("Voice");
                 }}
               >
-                <Text style={styles.iconActionText}>🎙️</Text>
+                <Text style={styles.iconActionText}>MIC</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -584,7 +605,7 @@ export default function WyreSupMainScreen() {
                   navigation.navigate("Library");
                 }}
               >
-                <Text style={styles.iconActionText}>📖</Text>
+                <Text style={styles.iconActionText}>LIB</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -594,7 +615,7 @@ export default function WyreSupMainScreen() {
                   navigation.navigate("Settings");
                 }}
               >
-                <Text style={styles.iconActionText}>⚙️</Text>
+                <Text style={styles.iconActionText}>CFG</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -666,17 +687,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   membersBtn: {
-    width: 36,
-    height: 36,
+    height: 32,
+    paddingHorizontal: 8,
     borderRadius: 8,
     backgroundColor: "rgba(22, 27, 34, 0.8)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: "rgba(0, 245, 155, 0.25)",
     justifyContent: "center",
     alignItems: "center",
   },
   membersBtnText: {
-    fontSize: 16,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#00f59b",
+    letterSpacing: 0.5,
   },
 
   chatViewport: {

@@ -37,18 +37,18 @@ const Tab = createBottomTabNavigator();
 
 // Tab bar icons identical to WyreSup
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    P2P: "🌐",
-    Nearby: "📡",
-    Contacts: "👥",
-    Requests: "🔔",
-    Feed: "📝",
-    Tests: "🧪",
-    Settings: "⚙️",
+  const labels: Record<string, string> = {
+    P2P: "P2P",
+    Nearby: "MESH",
+    Contacts: "PEERS",
+    Requests: "REQ",
+    Feed: "FEED",
+    Tests: "TEST",
+    Settings: "CFG",
   };
   return (
-    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>
-      {icons[name] || "•"}
+    <Text style={{ fontSize: 11, fontWeight: "700", color: focused ? "#00ff88" : "#888888" }}>
+      {labels[name] || name}
     </Text>
   );
 }
@@ -85,7 +85,7 @@ function SettingsScreen({ navigation }: any) {
           style={styles.featureCard}
           onPress={() => navigation.navigate("Wallet")}
         >
-          <Text style={styles.featureIcon}>💼</Text>
+          <Text style={styles.featureIcon}>[W]</Text>
           <Text style={styles.featureName}>خَزِينَة (Wallet)</Text>
           <Text style={styles.featureSub}>Avalanche Subnet 51950</Text>
         </TouchableOpacity>
@@ -94,7 +94,7 @@ function SettingsScreen({ navigation }: any) {
           style={styles.featureCard}
           onPress={() => navigation.navigate("Tunnel")}
         >
-          <Text style={styles.featureIcon}>🚇</Text>
+          <Text style={styles.featureIcon}>[T]</Text>
           <Text style={styles.featureName}>نَفَق (Tunnel)</Text>
           <Text style={styles.featureSub}>P2P Port Forwarding</Text>
         </TouchableOpacity>
@@ -103,7 +103,7 @@ function SettingsScreen({ navigation }: any) {
           style={styles.featureCard}
           onPress={() => navigation.navigate("Voice")}
         >
-          <Text style={styles.featureIcon}>🎵</Text>
+          <Text style={styles.featureIcon}>[V]</Text>
           <Text style={styles.featureName}>نَغَم (Nagham)</Text>
           <Text style={styles.featureSub}>DTMF Voice Channel</Text>
         </TouchableOpacity>
@@ -112,7 +112,7 @@ function SettingsScreen({ navigation }: any) {
           style={styles.featureCard}
           onPress={() => navigation.navigate("Stealth")}
         >
-          <Text style={styles.featureIcon}>🕶️</Text>
+          <Text style={styles.featureIcon}>[S]</Text>
           <Text style={styles.featureName}>مَلَاذ (Maladh)</Text>
           <Text style={styles.featureSub}>Stealth Discovery</Text>
         </TouchableOpacity>
@@ -121,7 +121,7 @@ function SettingsScreen({ navigation }: any) {
           style={styles.featureCard}
           onPress={() => navigation.navigate("Library")}
         >
-          <Text style={styles.featureIcon}>📚</Text>
+          <Text style={styles.featureIcon}>[L]</Text>
           <Text style={styles.featureName}>مَكْتَبَة (Library)</Text>
           <Text style={styles.featureSub}>Decentralized Content</Text>
         </TouchableOpacity>
