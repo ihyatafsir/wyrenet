@@ -44,7 +44,7 @@ class NafaqLisanTunnel {
 
   /**
    * =========================================================================
-   * ⚖️ 1. Al-Mīzān al-Ṣarfī: Triliteral Sharding Engine (ف - ع - ل)
+   * [BALANCE]️ 1. Al-Mīzān al-Ṣarfī: Triliteral Sharding Engine (ف - ع - ل)
    * Splits arbitrary binary payload into 3 shards [Fā', 'Ayn, Lām].
    * =========================================================================
    */
@@ -120,7 +120,7 @@ class NafaqLisanTunnel {
 
   /**
    * =========================================================================
-   * 🌟 2. Triliteral Self-Healing Reconstruction
+   * [PRIME] 2. Triliteral Self-Healing Reconstruction
    * Ingests incoming shard; returns reconstructed full payload as soon as 
    * ANY 2 shards for a given sequence arrive!
    * =========================================================================
@@ -200,7 +200,7 @@ class NafaqLisanTunnel {
 
   /**
    * =========================================================================
-   * 📜 3. Al-Tawriyah: Steganographic Root Signaling for DPI Immunity
+   * [CHARTER] 3. Al-Tawriyah: Steganographic Root Signaling for DPI Immunity
    * Generates a classical Arabic cover sentence carrying tunnel handshake metadata
    * =========================================================================
    */
@@ -223,7 +223,7 @@ class NafaqLisanTunnel {
 
   /**
    * =========================================================================
-   * 🌊 4. Al-Buhūr: Cellular Keepalive Ping Frame (Prevents Telco CGNAT Eviction)
+   * [STREAM] 4. Al-Buhūr: Cellular Keepalive Ping Frame (Prevents Telco CGNAT Eviction)
    * 12-byte micro frame sent every 18 seconds to keep NAT mapping warm
    * =========================================================================
    */

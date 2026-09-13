@@ -11,6 +11,10 @@ class HudurPresence {
     this.peers = new Map();
   }
 
+  recordHeartbeat(peerData) {
+    return this.updatePeer(peerData);
+  }
+
   updatePeer(peerData) {
     const peerId = peerData.peerId;
     if (!peerId) return null;

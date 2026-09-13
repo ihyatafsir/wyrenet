@@ -1,4 +1,86 @@
 
+// --- WyreNet Sovereign L1 Subnet 51950 & RTCDataChannel Conduit Helpers ---
+function updateConduitIndicator(text) {
+  const badgeEl = document.getElementById('topbar-mesh-status');
+  if (badgeEl && text) {
+    badgeEl.textContent = text;
+  }
+}
+
+async function registerIdentityOnChain() {
+  try {
+    if (!state.identity || !state.identity.did || !state.identity.address) return;
+    const payload = {
+      did: state.identity.did,
+      address: state.identity.address,
+      ecdhPubJwk: state.identity.ecdhPubJwk || null,
+      ecdsaPubJwk: state.identity.ecdsaPubJwk || null,
+      rendezvousHints: [state.identity.fullId]
+    };
+    const res = await fetch('/api/wyrenet/did/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        state.identity.didNotarized = true;
+        console.log('[WyreNet Sovereign L1] DID registered on Subnet 51950:', state.identity.did, 'Tx:', data.record?.txHash);
+        updateConduitIndicator('L1 DID ANCHORED');
+      }
+    }
+  } catch (err) {
+    console.warn('[WyreNet Sovereign DID] Registration notice:', err.message);
+  }
+}
+
+async function resolvePeerDid(peerPrefixOrAddress) {
+  try {
+    if (!peerPrefixOrAddress) return null;
+    const target = peerPrefixOrAddress.toLowerCase().trim();
+    const did = target.startsWith('did:wyre:') ? target : (target.startsWith('0x') ? `did:wyre:${target}` : `did:wyre:${target}`);
+    const res = await fetch(`/api/wyrenet/did/${encodeURIComponent(did)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        return data.record;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+function setupActiveCallDataChannel(dc) {
+  if (!dc) return;
+  state.activeCall.dataChannel = dc;
+
+  dc.onopen = () => {
+    console.log('[RTCDataChannel] Zero-Hop Direct P2P Channel OPEN');
+    updateConduitIndicator('P2P 0-HOP DIRECT');
+  };
+  dc.onclose = () => {
+    console.log('[RTCDataChannel] Zero-Hop Direct P2P Channel CLOSED');
+    updateConduitIndicator('GOSSIP MESH RELAY');
+  };
+  dc.onerror = (err) => {
+    console.warn('[RTCDataChannel] Channel notice:', err && err.message ? err.message : err);
+  };
+  dc.onmessage = (event) => {
+    try {
+      const parsed = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      if (parsed && (parsed.type === 'P2P_PACKET' || parsed.type === 'GOSSIP_PACKET')) {
+        handleIncomingGossipPacket(parsed.payload);
+      } else if (parsed && parsed.zahir) {
+        handleIncomingGossipPacket(parsed);
+      }
+    } catch (e) {
+      console.warn('[RTCDataChannel] Incoming message parse notice:', e.message);
+    }
+  };
+}
+
+
 // --- High-Fidelity Linear Interpolation PCM Resampler ---
 function resamplePCM(input, sourceRate, targetRate) {
   if (!input || input.length === 0 || sourceRate === targetRate || !sourceRate || !targetRate) {
@@ -33,11 +115,11 @@ function updateCallStreamTitleUI(title) {
     if (banner) banner.style.display = 'flex';
     if (titleText) titleText.textContent = title;
     if (remoteTag) {
-      remoteTag.textContent = `🟢 ${title}`;
+      remoteTag.textContent = `[LIVE] ${title}`;
       remoteTag.classList.add('video-stream-badge');
     }
     if (localTag) {
-      localTag.textContent = `🟢 ${title}`;
+      localTag.textContent = `[LIVE] ${title}`;
       localTag.classList.add('video-stream-badge');
     }
   } else {
@@ -97,7 +179,7 @@ class TaburQueue {
     const badge = document.getElementById("tabur-queue-indicator");
     if (badge) {
       badge.style.display = queue.length > 0 ? "inline-flex" : "none";
-      badge.textContent = `⏳ Tabur: ${queue.length} offline`;
+      badge.textContent = `[WAIT] Tabur: ${queue.length} offline`;
     }
   }
 }
@@ -178,6 +260,23 @@ async function getOrDeriveSharedKey(peer) {
     if (knownPeer && knownPeer.ecdhPubKey) {
       remoteEcdhJwk = knownPeer.ecdhPubKey;
       pinPeerKeys(peerId, knownPeer.ecdhPubKey, knownPeer.signPubKey);
+    }
+  }
+
+  // 3. Query Subnet 51950 On-Chain DID Registry
+  if (!remoteEcdhJwk) {
+    try {
+      const knownPeer = state.peers.find(p => p.peerId === peerId || p.prefix === peerId.split('@')[0]);
+      const addr = knownPeer?.address || (peerId.startsWith('0x') ? peerId : null);
+      const did = knownPeer?.did || (addr ? `did:wyre:${addr.toLowerCase()}` : `did:wyre:${peerId.split('@')[0]}`);
+      const onChainRecord = await resolvePeerDid(did);
+      if (onChainRecord && onChainRecord.ecdhPubJwk) {
+        remoteEcdhJwk = onChainRecord.ecdhPubJwk;
+        pinPeerKeys(peerId, onChainRecord.ecdhPubJwk, onChainRecord.ecdsaPubJwk);
+        console.log(`[WyreNet Sovereign L1] Authenticated peer ${peerId} public key via on-chain DID ${did}`);
+      }
+    } catch (didErr) {
+      console.warn('[WyreNet] On-chain DID resolution notice:', didErr.message);
     }
   }
 
@@ -322,7 +421,7 @@ async function sendEncryptedDm(dmChannelId, rawPayload) {
       }));
     }
     console.error(`[WyreCrypto Fail-Closed] Recipient key unavailable. Requested public key for @${targetPrefix} from mesh.`);
-    appendSystemNotice(`🔒 [Miftah Security Policy]: Requested public key for @${targetPrefix} from the mesh. Please resend message in a moment once key sync completes.`);
+    appendSystemNotice(`[E2EE] [Miftah Security Policy]: Requested public key for @${targetPrefix} from the mesh. Please resend message in a moment once key sync completes.`);
   }
 }
 
@@ -597,7 +696,7 @@ function getDefaultSpaces() {
       id: 'space-public-mesh',
       name: 'WyreNet Majlis',
       arabicName: 'مَجْلِس وَايِرْنِت السِّيَادِيّ',
-      icon: '💬',
+      icon: '[CHAT]',
       channels: [
         { id: 'chan-general', name: 'general', type: 'text', icon: '#' },
         { id: 'chan-protocol-dev', name: 'protocol-dev', type: 'text', icon: '#' },
@@ -619,18 +718,18 @@ function getDefaultSpaces() {
         { id: 'chan-classical-heritage', name: 'classical-heritage', type: 'text', icon: '#' },
         { id: 'chan-asrar-rashid', name: 'shaykh-asrar-rashid', type: 'text', icon: '#' },
         { id: 'chan-hamza-yusuf', name: 'shaykh-hamza-yusuf', type: 'text', icon: '#' },
-        { id: 'chan-antigravity', name: '🤖 antigravity', type: 'text', icon: '🔒' },
-        { id: 'chan-voice-lounge', name: 'voice-lounge-sawt', type: 'voice', icon: '🔊' }
+        { id: 'chan-antigravity', name: '[AI] antigravity', type: 'text', icon: '[E2EE]' },
+        { id: 'chan-voice-lounge', name: 'voice-lounge-sawt', type: 'voice', icon: '[VOICE]' }
       ]
     },
     {
       id: 'space-cyber-citadel',
       name: 'Miftah Citadel',
       arabicName: 'قَلْعَة المِفْتَاح',
-      icon: '🛡️',
+      icon: '[ZBAT]',
       channels: [
         { id: 'chan-keys-thaqb', name: 'keys-thaqb', type: 'text', icon: '#' },
-        { id: 'chan-nagham-dtmf', name: 'nagham-acoustic', type: 'voice', icon: '🎵' }
+        { id: 'chan-nagham-dtmf', name: 'nagham-acoustic', type: 'voice', icon: '[AUDIO]' }
       ]
     }
   ];
@@ -747,7 +846,25 @@ async function initIdentity() {
     state.identity.ecdhPubJwk = cryptoKeys.ecdhPubJwk;
     state.identity.ecdsaPubJwk = cryptoKeys.ecdsaPubJwk;
   }
+  // Derive sovereign EVM Address & DID on Subnet 51950
+  if (!state.identity.address) {
+    let rawSeed = state.identity.fullId;
+    if (state.identity.ecdsaPubJwk && state.identity.ecdsaPubJwk.x) {
+      rawSeed += state.identity.ecdsaPubJwk.x;
+    }
+    const bytes = [];
+    for (let i = 0; i < 20; i++) {
+      let b = 0;
+      for (let j = 0; j < rawSeed.length; j++) {
+        b = (b * 31 + rawSeed.charCodeAt(j) + i) & 0xff;
+      }
+      bytes.push(b.toString(16).padStart(2, '0'));
+    }
+    state.identity.address = '0x' + bytes.join('');
+    state.identity.did = `did:wyre:${state.identity.address}`;
+  }
   localStorage.setItem('wyresup_identity', JSON.stringify(state.identity));
+  registerIdentityOnChain().catch(e => console.warn('[DID Auto-Anchor Notice]:', e.message));
 
   // Update UI user bar
   document.getElementById('current-user-name').textContent = state.identity.prefix;
@@ -1097,11 +1214,11 @@ async function handleIncomingGossipPacket(packet) {
           packet.isDecrypted = true;
           packet.isSignatureVerified = true;
         } else {
-          packet.batin = { content: "🔒 [ZBAT AEAD Auth Tag Verification Failed — Tampered Packet]" };
+          packet.batin = { content: "[E2EE] [ZBAT AEAD Auth Tag Verification Failed — Tampered Packet]" };
           packet.isDecrypted = false;
         }
       } else {
-        packet.batin = { content: "🔒 [ZBAT Ciphertext Encrypted via AES-256-GCM / Awaiting Key]" };
+        packet.batin = { content: "[E2EE] [ZBAT Ciphertext Encrypted via AES-256-GCM / Awaiting Key]" };
         packet.isDecrypted = false;
       }
     }
@@ -1137,7 +1254,7 @@ function renderSpacesRail() {
     btn.className = `rail-icon ${space.id === state.currentSpaceId ? 'active' : ''}`;
     btn.title = `${space.name} (${space.arabicName || ''})`;
     btn.innerHTML = `
-      <span>${space.icon || '💬'}</span>
+      <span>${space.icon || '[CHAT]'}</span>
       <div class="active-pill"></div>
     `;
     btn.onclick = () => selectSpace(space.id);
@@ -1195,7 +1312,7 @@ function renderChannelsSidebar() {
     const isExpanded = hasSubs && state.expandedImamChannelId === ch.id;
 
     el.className = `channel-item ${ch.id === state.currentChannelId ? 'active' : ''} ${isSub ? 'subchannel-item' : ''} ${hasSubs ? 'has-subchannels' : ''}`;
-    const icon = ch.type === 'voice' ? '🔊' : (ch.id.startsWith('dm-') ? '🔒' : (isSub ? '└─' : (ch.icon || '#')));
+    const icon = ch.type === 'voice' ? '[VOICE]' : (ch.id.startsWith('dm-') ? '[E2EE]' : (isSub ? '└─' : (ch.icon || '#')));
 
     let caretHtml = '';
     if (hasSubs) {
@@ -1251,7 +1368,7 @@ function selectChannel(channelId) {
       name: `dm-${peerName}`,
       type: 'text',
       topic: `Direct P2P Encrypted Session with @${peerName} (مُحَادَثَة خَاصَّة)`,
-      icon: '🔒'
+      icon: '[E2EE]'
     };
     if (space) space.channels.push(channel);
   }
@@ -1264,17 +1381,17 @@ function selectChannel(channelId) {
     const peerName = isDM ? channel.id.replace('dm-', '') : '';
 
     document.getElementById('topbar-channel-title').textContent = channel.name;
-    document.getElementById('topbar-channel-icon').textContent = channel.icon || (isDM ? '🔒' : (channel.type === 'voice' ? '🔊' : '#'));
+    document.getElementById('topbar-channel-icon').textContent = channel.icon || (isDM ? '[E2EE]' : (channel.type === 'voice' ? '[VOICE]' : '#'));
     document.getElementById('topbar-channel-topic').textContent = channel.topic || 'Mesh channel';
 
     if (isDM) {
-      document.getElementById('hero-channel-title').textContent = `🔒 Direct P2P Session with @${peerName}`;
+      document.getElementById('hero-channel-title').textContent = `[E2EE] Direct P2P Session with @${peerName}`;
       document.getElementById('hero-channel-desc').textContent = `End-to-End Encrypted Tunnel (Nafaq) via ChaCha20-Poly1305. Direct session with zero relay hops.`;
-      document.getElementById('hero-icon').textContent = '🔒';
+      document.getElementById('hero-icon').textContent = '[E2EE]';
     } else {
       document.getElementById('hero-channel-title').textContent = `Welcome to #${channel.name}!`;
       document.getElementById('hero-channel-desc').textContent = channel.topic || 'Decentralized Gossip Mesh Room.';
-      document.getElementById('hero-icon').textContent = channel.icon || (channel.type === 'voice' ? '🔊' : '#');
+      document.getElementById('hero-icon').textContent = channel.icon || (channel.type === 'voice' ? '[VOICE]' : '#');
     }
 
     const input = document.getElementById('message-input');
@@ -1343,7 +1460,7 @@ function renderVoiceParticipants() {
     const chip = document.createElement('div');
     chip.className = 'voice-peer-chip';
     chip.innerHTML = `
-      <span>🔊</span>
+      <span>[VOICE]</span>
       <span>${peer.prefix || peer.peerId}</span>
       <span style="opacity:0.6;font-size:9px;">${peer.latency || 12}ms</span>
     `;
@@ -1422,7 +1539,7 @@ function appendMessageToDOM(packet) {
     bodyHtml += `
       <div class="vcwyvl-chat-card" style="margin-top:8px; padding:10px 14px; background:rgba(0, 245, 155, 0.08); border:1px solid rgba(0, 245, 155, 0.3); border-radius:8px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:1.4rem;">📺</span>
+          <span style="font-size:1.4rem;">[STREAM]</span>
           <div>
             <div style="font-weight:700; color:#00f59b; font-size:0.85rem;">VCWYVL // YouTube Stream Ready</div>
             <div style="font-size:0.75rem; color:#8e9297;">Tap to start synchronized P2P video call stream</div>
@@ -1483,7 +1600,7 @@ function appendMessageToDOM(packet) {
                 <span>⬇️</span> Download EPUB
               </a>
               <button class="epub-btn-read" onclick="openEpubInReader('${escapeHtml(att.name)}', '${escapeHtml(cleanName).replace(/'/g, "\\'")}', '${epubUrl}')" title="Read Online">
-                <span>📖</span> Read Online
+                <span>[BOOK]</span> Read Online
               </button>
             </div>
           </div>
@@ -1491,7 +1608,7 @@ function appendMessageToDOM(packet) {
       } else {
         bodyHtml += `
           <div class="msg-file-card">
-            <span class="file-icon">📄</span>
+            <span class="file-icon">[DOC]</span>
             <div class="file-info">
               <a href="${att.data}" download="${escapeHtml(att.name)}" class="file-name">${escapeHtml(att.name)}</a>
               <span class="file-size">${formatBytes(att.size)} · P2P Direct File</span>
@@ -1508,10 +1625,10 @@ function appendMessageToDOM(packet) {
   card.innerHTML = `
     <!-- Floating Discord Action Bar -->
     <div class="msg-action-bar">
-      <button class="msg-action-btn" onclick="sendQuickReaction('⚡')" title="React ⚡">⚡</button>
-      <button class="msg-action-btn" onclick="sendQuickReaction('🛡️')" title="React 🛡️">🛡️</button>
-      <button class="msg-action-btn" onclick="sendQuickReaction('👍')" title="React 👍">👍</button>
-      <button class="msg-action-btn" onclick="sendQuickReaction('🔥')" title="React 🔥">🔥</button>
+      <button class="msg-action-btn" onclick="sendQuickReaction('[BURST]')" title="React [BURST]">[BURST]</button>
+      <button class="msg-action-btn" onclick="sendQuickReaction('[ZBAT]')" title="React [ZBAT]">[ZBAT]</button>
+      <button class="msg-action-btn" onclick="sendQuickReaction('[ACK]')" title="React [ACK]">[ACK]</button>
+      <button class="msg-action-btn" onclick="sendQuickReaction('[FIRE]')" title="React [FIRE]">[FIRE]</button>
     </div>
 
     <div class="msg-content-wrap">
@@ -1519,8 +1636,8 @@ function appendMessageToDOM(packet) {
         <span class="msg-author ${prefix === 'antigravity' ? 'antigravity' : ''}" onclick="showUserProfileBySenderId('${senderId}')" style="cursor: pointer;" title="View ${prefix}'s profile">${prefix}</span>
         ${isBot ? '<span class="msg-badge">APP</span>' : ''}
         <span class="msg-id">${senderId}</span>
-        <span class="msg-badge zbat">🛡️ ZBAT</span>
-        ${packet.isEncrypted || packet.zahir?.isEncrypted ? '<span class="msg-badge miftah-badge" title="Miftah E2EE: AES-256-GCM authenticated encryption">🔒 E2EE</span>' : ''}
+        <span class="msg-badge zbat">[ZBAT] ZBAT</span>
+        ${packet.isEncrypted || packet.zahir?.isEncrypted ? '<span class="msg-badge miftah-badge" title="Miftah E2EE: AES-256-GCM authenticated encryption">[E2EE] E2EE</span>' : ''}
         <span class="msg-badge hops">${hops === 0 ? 'Direct' : `${hops} hops`}</span>
         <span class="msg-time">${timeStr}</span>
       </div>
@@ -1873,7 +1990,7 @@ window.playSawtAudio = function(msgId, voiceData) {
   state.currentPlayingCard = card;
 
   if (card) card.classList.add('playing');
-  if (btn) btn.textContent = '⏸';
+  if (btn) btn.textContent = '[PAUSE]';
 
   audio.ontimeupdate = () => {
     if (timeEl && audio.duration) {
@@ -2025,7 +2142,7 @@ function activateNafaqTunnel(peer) {
   
   // Update Topbar badge
   const badgeText = document.getElementById('topbar-mesh-status');
-  if (badgeText) badgeText.textContent = '🛡️ NAFAQ // 10.240.0.2';
+  if (badgeText) badgeText.textContent = '[ZBAT] NAFAQ // 10.240.0.2';
 
   // Update Dashboard modal fields
   const dIp = document.getElementById('diag-tunnel-ip');
@@ -2105,9 +2222,9 @@ function renderAttachmentTray() {
     chip.className = 'attachment-chip';
     const isImg = att.type && att.type.startsWith('image/');
     chip.innerHTML = `
-      ${isImg ? `<img src="${att.data}" alt="preview">` : '<span>📄</span>'}
+      ${isImg ? `<img src="${att.data}" alt="preview">` : '<span>[DOC]</span>'}
       <span class="chip-name">${escapeHtml(att.name)}</span>
-      <button class="chip-remove-btn" onclick="removeStagedAttachment(${idx})">✕</button>
+      <button class="chip-remove-btn" onclick="removeStagedAttachment(${idx})">X</button>
     `;
     tray.appendChild(chip);
   });
@@ -2321,7 +2438,7 @@ function initEventListeners() {
           name: `dm-${prefix}`,
           type: 'text',
           topic: `Direct P2P Encrypted Session with @${prefix} (مُحَادَثَة خَاصَّة)`,
-          icon: '🔒'
+          icon: '[E2EE]'
         };
         currentSpace.channels.push(dmChannel);
         renderChannelsSidebar();
@@ -2336,7 +2453,7 @@ function initEventListeners() {
           payload: {
             spaceId: state.currentSpaceId,
             channelId: dmChannelId,
-            content: `🔒 [Miftah Handshake] Requesting Direct P2P session with @${prefix} (${peer.peerId}). Forward secrecy initialized.`
+            content: `[E2EE] [Miftah Handshake] Requesting Direct P2P session with @${prefix} (${peer.peerId}). Forward secrecy initialized.`
           }
         }));
       }
@@ -2472,7 +2589,7 @@ function initEventListeners() {
           name: `dm-${prefix}`,
           type: 'text',
           topic: `Direct P2P Encrypted Session with @${prefix} (مُحَادَثَة خَاصَّة)`,
-          icon: '🔒'
+          icon: '[E2EE]'
         };
         currentSpace.channels.push(dmChannel);
         renderChannelsSidebar();
@@ -2488,7 +2605,7 @@ function initEventListeners() {
           payload: {
             spaceId: state.currentSpaceId,
             channelId: dmChannelId,
-            content: `🛡️ [Nafaq Tunnel Established] Direct wire-speed encrypted tunnel activated with @${prefix} (${peer.peerId}). Virtual Mesh IP: 10.240.0.2/24.`
+            content: `[ZBAT] [Nafaq Tunnel Established] Direct wire-speed encrypted tunnel activated with @${prefix} (${peer.peerId}). Virtual Mesh IP: 10.240.0.2/24.`
           }
         }));
       }
@@ -2527,7 +2644,7 @@ function initEventListeners() {
           payload: {
             spaceId: state.currentSpaceId,
             channelId: state.currentChannelId,
-            content: '🔄 [Miftah Ratchet] Session key rotated with 0-RTT forward-secrecy.'
+            content: '[RATCHET] [Miftah Ratchet] Session key rotated with 0-RTT forward-secrecy.'
           }
         }));
       }
@@ -2587,7 +2704,7 @@ function initEventListeners() {
   document.getElementById('btn-submit-create-space').addEventListener('click', async () => {
     const name = document.getElementById('space-name-input').value.trim();
     const arabicName = document.getElementById('space-arabic-input').value.trim();
-    const icon = document.getElementById('space-icon-input').value.trim() || '💬';
+    const icon = document.getElementById('space-icon-input').value.trim() || '[CHAT]';
     const description = document.getElementById('space-desc-input').value.trim();
 
     if (!name) return;
@@ -2739,7 +2856,7 @@ function openStreamYoutubeModal(targetPeer = null) {
 async function searchYouTubeVideos(query) {
   const container = document.getElementById('yt-search-results');
   if (!container) return;
-  container.innerHTML = '<div style="color:#00f59b; padding:10px; font-size:0.85rem;">🔍 Searching YouTube for streams...</div>';
+  container.innerHTML = '<div style="color:#00f59b; padding:10px; font-size:0.85rem;">[SEARCH] Searching YouTube for streams...</div>';
   container.style.display = 'flex';
 
   try {
@@ -2777,7 +2894,7 @@ async function startYoutubeStreamCall(targetPeer, queryOrUrl) {
   const originalText = btn ? btn.innerHTML : '';
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳ Preparing Stream...</span>';
+    btn.innerHTML = '<span>[WAIT] Preparing Stream...</span>';
   }
 
   try {
@@ -2812,7 +2929,7 @@ async function startYoutubeStreamCall(targetPeer, queryOrUrl) {
       const localVideo = document.getElementById('call-local-video');
       if (localVideo) localVideo.srcObject = ytStream;
       state.activeCall.localStream = ytStream;
-      console.log('✅ YouTube stream hot-swapped into active call!');
+      console.log('[OK] YouTube stream hot-swapped into active call!');
     } else {
       // Start new call with this stream
       await startOutgoingCallWithCustomStream(targetPeer || state.youtubeStreamTarget || 'enver', ytStream, streamInfo.title, streamInfo.streamUrl);
@@ -3386,7 +3503,7 @@ function handleIncomingShafHdFrame(payload) {
 
   const statusEl = document.getElementById('call-remote-status-text');
   if (statusEl && !statusEl.textContent.includes('Shaf') && !statusEl.textContent.includes('Sovereign')) {
-    statusEl.textContent = '🟢 HD Sovereign Dual-Conduit Active (نِظَامُ الشَّفْعِ الجَلِيّ)';
+    statusEl.textContent = '[LIVE] HD Sovereign Dual-Conduit Active (نِظَامُ الشَّفْعِ الجَلِيّ)';
   }
 }
 
@@ -3450,7 +3567,7 @@ function startNafaqPcmStream(targetPeer, localStream) {
     state.activeCall.nafaqPcmSource = source;
     state.activeCall.nafaqSilentSink = silentGain;
     state.activeCall.nafaqPcmProcessor = processor;
-    console.log('[NAFAQ PCM Engine] 🚀 Live containerless PCM voice streaming activated to @' + targetPeer);
+    console.log('[NAFAQ PCM Engine] [FAST] Live containerless PCM voice streaming activated to @' + targetPeer);
   } catch (err) {
     console.warn('[NAFAQ PCM Error]:', err.message);
   }
@@ -3510,7 +3627,7 @@ function handleIncomingNafaqPcm(payload) {
     if (voicePulse) voicePulse.style.display = 'flex';
     const statusEl = document.getElementById('call-remote-status-text');
     if (statusEl && !statusEl.textContent.includes('NAFAQ')) {
-      statusEl.textContent = '🟢 NAFAQ Sovereign Voice Tunnel Active (صَوْت مُبَاشِر)';
+      statusEl.textContent = '[LIVE] NAFAQ Sovereign Voice Tunnel Active (صَوْت مُبَاشِر)';
     }
   } catch (err) {
     // Jitter skip
@@ -3589,7 +3706,7 @@ window.startOutgoingCall = async function startOutgoingCall(targetPeer, callType
   // Self-dial guard (Nizām al-Shaf')
   if (state.identity && (peerId === state.identity.fullId || (peerPrefix === state.identity.prefix && state.peers.filter(p => p.prefix === peerPrefix).length <= 1))) {
     console.warn('[Call] Cannot dial self.');
-    appendSystemNotice('⚠️ [Call]: Cannot initiate a call to yourself. Please select another online peer.');
+    appendSystemNotice('[WARN] [Call]: Cannot initiate a call to yourself. Please select another online peer.');
     return;
   }
 
@@ -3643,6 +3760,14 @@ window.startOutgoingCall = async function startOutgoingCall(targetPeer, callType
     const pc = new RTCPeerConnection(RTC_CONFIG);
     state.activeCall.pc = pc;
 
+    // Establish Zero-Hop Direct RTCDataChannel
+    try {
+      const dc = pc.createDataChannel('wyrenet-direct-p2p', { ordered: true });
+      setupActiveCallDataChannel(dc);
+    } catch (dcErr) {
+      console.warn('[WebRTC] DataChannel initialization notice:', dcErr.message);
+    }
+
     pc.onconnectionstatechange = () => {
       const cs = pc.connectionState;
       console.log('[WebRTC Outgoing ConnectionState]:', cs);
@@ -3659,7 +3784,7 @@ window.startOutgoingCall = async function startOutgoingCall(targetPeer, callType
           } catch (swallowedErr) { console.warn("[WyreSup Non-Fatal Notice]:", swallowedErr.message); }
         }
         state.activeCall.nafaqActive = true;
-        document.getElementById('call-remote-status-text').textContent = '🟢 NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
+        document.getElementById('call-remote-status-text').textContent = '[LIVE] NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
         startNafaqTunnelStream(peerId, stream, callType);
       }
     };
@@ -3680,7 +3805,7 @@ window.startOutgoingCall = async function startOutgoingCall(targetPeer, callType
         console.warn('[WebRTC ICE Failed] Activating NAFAQ Sovereign Tunnel fallback!');
         state.activeCall.webrtcConnected = false;
         state.activeCall.nafaqActive = true;
-        document.getElementById('call-remote-status-text').textContent = '🟢 NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
+        document.getElementById('call-remote-status-text').textContent = '[LIVE] NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
         startNafaqTunnelStream(peerId, stream, callType);
       }
     };
@@ -3706,7 +3831,7 @@ window.startOutgoingCall = async function startOutgoingCall(targetPeer, callType
               console.log('[WebRTC Watchdog] Extended timeout reached — engaging NAFAQ Sovereign Tunneling!');
               state.activeCall.nafaqActive = true;
               const statusEl = document.getElementById('call-remote-status-text');
-              if (statusEl) statusEl.textContent = '🟢 NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
+              if (statusEl) statusEl.textContent = '[LIVE] NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
               startNafaqTunnelStream(peerId, stream, callType);
             }
           }, 6000);
@@ -3715,7 +3840,7 @@ window.startOutgoingCall = async function startOutgoingCall(targetPeer, callType
         console.log('[WebRTC Watchdog] ICE state is', curIce, '— engaging NAFAQ Sovereign Tunneling!');
         state.activeCall.nafaqActive = true;
         const statusEl = document.getElementById('call-remote-status-text');
-        if (statusEl) statusEl.textContent = '🟢 NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
+        if (statusEl) statusEl.textContent = '[LIVE] NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
         startNafaqTunnelStream(peerId, stream, callType);
       }, 8000);
     };
@@ -3961,6 +4086,22 @@ async function acceptIncomingCall() {
     const pc = new RTCPeerConnection(RTC_CONFIG);
     state.activeCall.pc = pc;
 
+    // Listen for incoming Zero-Hop Direct RTCDataChannel or fallback to local channel
+    pc.ondatachannel = (event) => {
+      if (event.channel) {
+        console.log('[WebRTC Accept] Received remote RTCDataChannel:', event.channel.label);
+        setupActiveCallDataChannel(event.channel);
+      }
+    };
+    try {
+      if (!state.activeCall.dataChannel) {
+        const dc = pc.createDataChannel('wyrenet-direct-p2p', { ordered: true });
+        setupActiveCallDataChannel(dc);
+      }
+    } catch (dcErr) {
+      console.warn('[WebRTC] DataChannel initialization notice:', dcErr.message);
+    }
+
     pc.onconnectionstatechange = () => {
       const cs = pc.connectionState;
       console.log('[WebRTC Accept ConnectionState]:', cs);
@@ -3980,7 +4121,7 @@ async function acceptIncomingCall() {
         }
         state.activeCall.nafaqActive = true;
         if (!isCustomStreamCall) {
-          document.getElementById('call-remote-status-text').textContent = '🟢 NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
+          document.getElementById('call-remote-status-text').textContent = '[LIVE] NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
         }
         startNafaqTunnelStream(senderPeer, stream, callType);
       }
@@ -4005,7 +4146,7 @@ async function acceptIncomingCall() {
         state.activeCall.webrtcConnected = false;
         state.activeCall.nafaqActive = true;
         if (!isCustomStreamCall) {
-          document.getElementById('call-remote-status-text').textContent = '🟢 NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
+          document.getElementById('call-remote-status-text').textContent = '[LIVE] NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
         }
         startNafaqTunnelStream(senderPeer, stream, callType);
       }
@@ -4033,7 +4174,7 @@ async function acceptIncomingCall() {
                 console.log('[WebRTC Watchdog] Extended timeout reached — engaging NAFAQ Sovereign Tunneling!');
                 state.activeCall.nafaqActive = true;
                 const statusEl = document.getElementById('call-remote-status-text');
-                if (statusEl) statusEl.textContent = '🟢 NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
+                if (statusEl) statusEl.textContent = '[LIVE] NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
                 startNafaqTunnelStream(senderPeer, stream, callType);
               }
             }, 6000);
@@ -4042,7 +4183,7 @@ async function acceptIncomingCall() {
           console.log('[WebRTC Watchdog] ICE state is', curIce, '— engaging NAFAQ Sovereign Tunneling!');
           state.activeCall.nafaqActive = true;
           const statusEl = document.getElementById('call-remote-status-text');
-          if (statusEl) statusEl.textContent = '🟢 NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
+          if (statusEl) statusEl.textContent = '[LIVE] NAFAQ Sovereign Tunnel Active (نَفَق مُبَاشِر مَحْمِيّ)';
           startNafaqTunnelStream(senderPeer, stream, callType);
         }, 8000);
       };
@@ -4321,11 +4462,11 @@ function toggleCallMic() {
   const lbl = document.getElementById('call-mic-lbl');
   if (state.activeCall.isMuted) {
     btn?.classList.add('active-off');
-    if (icon) icon.textContent = '🔇';
+    if (icon) icon.textContent = '[MUTED]';
     if (lbl) lbl.textContent = 'Muted';
   } else {
     btn?.classList.remove('active-off');
-    if (icon) icon.textContent = '🎙️';
+    if (icon) icon.textContent = '[MIC]';
     if (lbl) lbl.textContent = 'Mic';
   }
 }
@@ -4344,12 +4485,12 @@ function toggleCallCam() {
 
   if (state.activeCall.isCamOff) {
     btn?.classList.add('active-off');
-    if (icon) icon.textContent = '🚫';
+    if (icon) icon.textContent = '[OFF]';
     if (lbl) lbl.textContent = 'Cam Off';
     if (fallback) fallback.style.display = 'flex';
   } else {
     btn?.classList.remove('active-off');
-    if (icon) icon.textContent = '📹';
+    if (icon) icon.textContent = '[CAM]';
     if (lbl) lbl.textContent = 'Camera';
     if (fallback) fallback.style.display = 'none';
   }
@@ -4585,7 +4726,7 @@ function createSyntheticStream(withVideo = true) {
 
       cCtx.fillStyle = '#00f59b';
       cCtx.font = 'bold 36px monospace';
-      cCtx.fillText('WYRESUP // YASIIN BEY (MOS DEF) - SUPERMAGIC 🎵', 70, 100);
+      cCtx.fillText('WYRESUP // YASIIN BEY (MOS DEF) - SUPERMAGIC [AUDIO]', 70, 100);
 
       cCtx.font = '20px monospace';
       cCtx.fillStyle = '#8e9297';

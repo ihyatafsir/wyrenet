@@ -54,6 +54,8 @@
       this.channelState = ChannelState.INITIALIZING;
       this.remoteMediaStream = null;
       this.peerConnection = null;
+      this.dataChannel = null;
+      this.dataChannelState = 'closed';
     }
 
     /**
@@ -74,6 +76,25 @@
       this.peerConnection = pc;
       this.channelState = ChannelState.CONNECTING;
       this.remoteMediaStream = new MediaStream();
+
+      // Zero-Hop Direct RTCDataChannel (Barq Wire-Speed Conduit)
+      const enableDataChannel = options.enableDataChannel !== false;
+      const isInitiator = !!options.isInitiator;
+
+      if (enableDataChannel && isInitiator && typeof pc.createDataChannel === 'function') {
+        try {
+          const dc = pc.createDataChannel('wyrenet-direct-p2p', { ordered: true });
+          this._setupDataChannel(dc, options);
+        } catch (dcErr) {
+          console.warn('[WyreWebRtcChannel] DataChannel init notice:', dcErr.message);
+        }
+      }
+
+      pc.ondatachannel = (event) => {
+        if (event.channel) {
+          this._setupDataChannel(event.channel, options);
+        }
+      };
 
       // 1. Ingest Local Media Tracks (Kitāb al-ʿAyn primitive binding)
       if (localStream && typeof localStream.getTracks === "function") {
@@ -220,9 +241,74 @@
     }
 
     /**
+     * Internal setup and event binding for RTCDataChannel
+     */
+    _setupDataChannel(dc, options = {}) {
+      this.dataChannel = dc;
+      this.dataChannelState = dc.readyState;
+
+      dc.onopen = () => {
+        this.dataChannelState = 'open';
+        console.log('[WyreWebRtcChannel] Zero-Hop Direct DataChannel Established');
+        if (typeof options.onDataChannelOpen === 'function') {
+          options.onDataChannelOpen(dc);
+        }
+      };
+
+      dc.onclose = () => {
+        this.dataChannelState = 'closed';
+        console.log('[WyreWebRtcChannel] Zero-Hop Direct DataChannel Closed');
+        if (typeof options.onDataChannelClose === 'function') {
+          options.onDataChannelClose();
+        }
+      };
+
+      dc.onerror = (err) => {
+        console.warn('[WyreWebRtcChannel] DataChannel notice:', err && err.message ? err.message : err);
+      };
+
+      dc.onmessage = (event) => {
+        let parsed = event.data;
+        if (typeof event.data === 'string') {
+          try {
+            parsed = JSON.parse(event.data);
+          } catch (e) {
+            parsed = event.data;
+          }
+        }
+        if (typeof options.onDataMessage === 'function') {
+          options.onDataMessage(parsed, event);
+        }
+      };
+    }
+
+    /**
+     * Sends structured data or E2EE packets over the 0-hop DataChannel
+     */
+    sendData(data) {
+      if (this.dataChannel && this.dataChannel.readyState === 'open') {
+        const payload = typeof data === 'string' ? data : JSON.stringify(data);
+        this.dataChannel.send(payload);
+        return true;
+      }
+      return false;
+    }
+
+    /**
      * Gracefully tears down peer connection and active tracks.
      */
     terminateSession(pc = null) {
+      if (this.dataChannel) {
+        try {
+          this.dataChannel.onopen = null;
+          this.dataChannel.onclose = null;
+          this.dataChannel.onmessage = null;
+          this.dataChannel.onerror = null;
+          this.dataChannel.close();
+        } catch (e) {}
+        this.dataChannel = null;
+        this.dataChannelState = 'closed';
+      }
       const activePc = pc || this.peerConnection;
       this.channelState = ChannelState.CLOSED;
 

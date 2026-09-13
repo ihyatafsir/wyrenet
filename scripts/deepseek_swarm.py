@@ -118,6 +118,11 @@ if __name__ == "__main__":
             "name": "Subnet_EVM_RPC_Auditor",
             "role": "You specialize in EVM JSON-RPC 2.0 and Avalanche Subnets.",
             "prompt": "Review serving EVM JSON-RPC 2.0 methods (eth_chainId, eth_blockNumber, eth_getBalance, eth_sendRawTransaction) on Subnet 51950. Summarize key security invariants for gasless EIP-712 relayers in 2 bullet points."
+        },
+        {
+            "name": "Blockchain_Spawned_P2P_Auditor",
+            "role": "You specialize in decentralized identity (DID), on-chain cryptographic key registry, and WebRTC RTCDataChannel 0-hop direct peer-to-peer conduits.",
+            "prompt": "Evaluate the architectural integrity of using an on-chain DID registry (Avalanche Subnet 51950) to bind peer addresses to their verified ECDH encryption public keys via EIP-191 signatures, allowing peers to resolve authenticated keys and spawn direct WebRTC RTCDataChannel connections that achieve zero-hop line-speed communication without central directory authorities. Summarize in 3 technical findings."
         }
     ]
     run_agent_swarm(test_tasks)

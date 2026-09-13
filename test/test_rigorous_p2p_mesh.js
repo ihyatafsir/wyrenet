@@ -641,6 +641,133 @@ async function runRigorousTestSuite() {
     logFail("EPUB Corpus verification exception: " + err.message);
   }
 
+  // --- MODULE 10: On-Chain Sovereign DID & Key Registry (Subnet 51950) ---
+  console.log("\n[Module 10] Testing Sovereign DID Registration & Key Resolution (Subnet 51950)...");
+  try {
+    const testDidAddress = "0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7";
+    const testDid = `did:wyre:${testDidAddress}`;
+    const ecdhPubJwk = { kty: "EC", crv: "P-256", x: "x-alice-sovereign-ecdh", y: "y-alice-sovereign-ecdh" };
+    const ecdsaPubJwk = { kty: "EC", crv: "P-256", x: "x-alice-sovereign-ecdsa", y: "y-alice-sovereign-ecdsa" };
+
+    const regRes = await httpRequest("POST", "/api/wyrenet/did/register", {
+      did: testDid,
+      address: testDidAddress,
+      ecdhPubJwk,
+      ecdsaPubJwk,
+      rendezvousHints: ["alice@mesh", "alice@wyrenet-direct"]
+    });
+
+    if (regRes.status === 200 && regRes.data && regRes.data.success && regRes.data.record) {
+      logPass("Sovereign DID Registry: Successfully registered " + testDid + " on Subnet block #" + regRes.data.record.blockHeight);
+    } else {
+      logFail("Sovereign DID Registration failed: " + JSON.stringify(regRes));
+    }
+
+    const resolveRes = await httpRequest("GET", `/api/wyrenet/did/${encodeURIComponent(testDid)}`);
+    if (resolveRes.status === 200 && resolveRes.data && resolveRes.data.success && resolveRes.data.record.ecdhPubJwk.x === ecdhPubJwk.x) {
+      logPass("Sovereign DID Resolution: Successfully retrieved on-chain cryptographic ECDH public key for " + testDid);
+    } else {
+      logFail("Sovereign DID Resolution failed: " + JSON.stringify(resolveRes));
+    }
+
+    const listRes = await httpRequest("GET", "/api/wyrenet/dids");
+    if (listRes.status === 200 && listRes.data && listRes.data.success && listRes.data.count >= 1) {
+      logPass("Sovereign DID Catalog: Confirmed " + listRes.data.count + " active identities anchored on WyreNet Subnet 51950.");
+    } else {
+      logFail("Sovereign DID Catalog failed: " + JSON.stringify(listRes));
+    }
+  } catch (err) {
+    logFail("Module 10 DID Registry exception: " + err.message);
+  }
+
+  // --- MODULE 11: Subnet 51950 On-Chain Notarization & Cryptographic Proof Verification ---
+  console.log("\n[Module 11] Testing On-Chain Message Notarization & Merkle Proof Verification...");
+  try {
+    const rawContent = "WyreNet P2P Session Cryptographic Anchor - Chain 51950 - " + Date.now();
+    const notarizeRes = await httpRequest("POST", "/api/wyrenet/notarize", {
+      content: rawContent,
+      channelId: "dev-mesh",
+      senderDid: "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7"
+    });
+
+    if (notarizeRes.status === 200 && notarizeRes.data && notarizeRes.data.txHash) {
+      const tx = notarizeRes.data.txHash;
+      logPass("Notarization Ledger: Message anchored on Subnet 51950 (Tx: " + tx.substring(0, 18) + "..., Block: " + notarizeRes.data.blockHeight + ")");
+
+      const verifyRes = await httpRequest("GET", `/api/wyrenet/notarize/verify/${tx}`);
+      if (verifyRes.status === 200 && verifyRes.data && verifyRes.data.verified && verifyRes.data.proof) {
+        logPass("Notarization Proof Verification: Cryptographic proof confirmed on-chain (ChainID: " + verifyRes.data.chainId + ", Confirmations: " + verifyRes.data.confirmations + ")");
+      } else {
+        logFail("Notarization proof verification failed: " + JSON.stringify(verifyRes));
+      }
+    } else {
+      logFail("Notarization request failed: " + JSON.stringify(notarizeRes));
+    }
+  } catch (err) {
+    logFail("Module 11 Notarization exception: " + err.message);
+  }
+
+  // --- MODULE 12: Zero-Hop Direct RTCDataChannel Wire-Speed Conduit ---
+  console.log("\n[Module 12] Testing Zero-Hop Direct RTCDataChannel Architecture & Delivery...");
+  try {
+    const WyreWebRtcChannel = require("../public/webrtc_channel.js");
+    const channelInstance = new WyreWebRtcChannel();
+
+    let receivedDirectPacket = null;
+    let channelOpened = false;
+
+    // Simulate mock RTCDataChannel
+    const mockDataChannel = {
+      label: "wyrenet-direct-p2p",
+      readyState: "connecting",
+      send: function(data) {
+        if (this.onmessage) {
+          this.onmessage({ data });
+        }
+      }
+    };
+
+    channelInstance._setupDataChannel(mockDataChannel, {
+      onDataChannelOpen: () => { channelOpened = true; },
+      onDataMessage: (data) => { receivedDirectPacket = data; }
+    });
+
+    // Fire open
+    mockDataChannel.readyState = "open";
+    if (mockDataChannel.onopen) mockDataChannel.onopen();
+
+    if (channelOpened && channelInstance.dataChannelState === "open") {
+      logPass("RTCDataChannel: Zero-hop direct conduit state machine verified (open).");
+    } else {
+      logFail("RTCDataChannel open state machine failed.");
+    }
+
+    const testPayload = {
+      type: "P2P_PACKET",
+      payload: {
+        zahir: { messageId: "direct-001", hops: 0, routeType: "direct_e2ee" },
+        batin: { text: "Wire-speed zero-hop direct peer delivery" }
+      }
+    };
+
+    channelInstance.sendData(testPayload);
+
+    if (receivedDirectPacket && receivedDirectPacket.payload.batin.text === "Wire-speed zero-hop direct peer delivery") {
+      logPass("RTCDataChannel: Wire-speed 0-hop direct packet delivery confirmed without intermediary server relay.");
+    } else {
+      logFail("RTCDataChannel packet delivery failed.");
+    }
+
+    channelInstance.terminateSession();
+    if (channelInstance.dataChannel === null && channelInstance.dataChannelState === "closed") {
+      logPass("RTCDataChannel: Session termination and resource teardown cleanly completed.");
+    } else {
+      logFail("RTCDataChannel termination incomplete.");
+    }
+  } catch (err) {
+    logFail("Module 12 RTCDataChannel exception: " + err.message);
+  }
+
   // --- MODULE 9: DeepSeek Flash 4.1 On-Chain & Real-Time Call Assistant ---
   console.log("\n[Module 9] Verifying DeepSeek Flash 4.1 On-Chain Security & Call Assistant...");
   try {

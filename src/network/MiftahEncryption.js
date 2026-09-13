@@ -72,7 +72,7 @@ class MiftahEngine {
             peerPublicKey,
         };
         this.keys.set(peerId, miftah);
-        console.log(`[MIFTAH] ✓ عَقْد complete, عَهْد expires in 24h`);
+        console.log(`[MIFTAH] [OK] عَقْد complete, عَهْد expires in 24h`);
         return miftah;
     }
 
@@ -115,7 +115,7 @@ class MiftahEngine {
         const sequence = new DataView(data.buffer, data.byteOffset).getUint32(0, false);
         const ciphertext = data.slice(4);
         if (miftah.puncturedSequences.has(sequence)) {
-            console.error(`[MIFTAH] ⚠️ REPLAY DETECTED! seq=${sequence} already punctured`);
+            console.error(`[MIFTAH] [WARN] REPLAY DETECTED! seq=${sequence} already punctured`);
             return null;
         }
         const seqKey = await deriveSequenceKey(miftah.masterSecret, sequence);
@@ -125,7 +125,7 @@ class MiftahEngine {
                 plaintext[i] = ciphertext[i] ^ seqKey[i % seqKey.length];
             }
             this.thaqb(miftah, sequence);
-            console.log(`[MIFTAH] فَكّ (Fakk) seq=${sequence} ✓`);
+            console.log(`[MIFTAH] فَكّ (Fakk) seq=${sequence} [OK]`);
             return new TextDecoder().decode(plaintext);
         } catch (_a) {
             console.error(`[MIFTAH] Decryption failed seq=${sequence}`);
@@ -174,7 +174,7 @@ class MiftahEngine {
             ahdExpiry: Date.now() + AHD_DURATION,
         };
         this.keys.set(peerId, miftah);
-        console.log(`[MIFTAH] ✓ Key established for ${peerId.split('@')[0]}`);
+        console.log(`[MIFTAH] [OK] Key established for ${peerId.split('@')[0]}`);
         return miftah;
     }
 

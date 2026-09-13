@@ -149,7 +149,7 @@ async function createConnection(myPrivateKey, peerId, peerPublicKey) {
         created: Date.now(),
     };
     connections.set(peerId, conn);
-    console.log(`[BARQ] ⚡ Connection created (0-RTT) → ${peerId}`);
+    console.log(`[BARQ] [BURST] Connection created (0-RTT) → ${peerId}`);
     return conn;
 }
 /**

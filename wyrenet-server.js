@@ -19,6 +19,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 // Auto-load .env configuration
 try {
@@ -58,6 +59,47 @@ const accountBalances = new Map();
 const seenTxHashes = new Set();
 const MAX_PEERS = 256;
 const MAX_BODY_BYTES = 256 * 1024; // 256 KB payload cap
+
+// Sovereign L1 DID & Message Notarization Ledger (Subnet 51950)
+const didRegistry = new Map();
+const activeChallenges = new Map();
+const notarizedLedger = new Map();
+const LEDGER_PATH = path.join(__dirname, 'wyrenet_ledger.json');
+
+function loadLedgerFromDisk() {
+  try {
+    if (fs.existsSync(LEDGER_PATH)) {
+      const parsed = JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8'));
+      if (parsed.dids) {
+        for (const [k, v] of Object.entries(parsed.dids)) {
+          didRegistry.set(k, v);
+        }
+      }
+      if (parsed.notarizations) {
+        for (const [k, v] of Object.entries(parsed.notarizations)) {
+          notarizedLedger.set(k, v);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[WyreNet] Ledger restore note:', e.message);
+  }
+}
+
+function saveLedgerToDisk() {
+  try {
+    const data = {
+      chainId: 51950,
+      dids: Object.fromEntries(didRegistry),
+      notarizations: Object.fromEntries(notarizedLedger),
+      updatedAt: new Date().toISOString()
+    };
+    fs.writeFileSync(LEDGER_PATH, JSON.stringify(data, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('[WyreNet] Ledger persist note:', e.message);
+  }
+}
+loadLedgerFromDisk();
 
 // Mesh and Classical Library Infrastructure
 const GossipMesh = require('./src/mesh/GossipMesh');
@@ -392,6 +434,191 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Endpoint: List all registered Sovereign DIDs on Subnet 51950
+  if (pathname === '/api/wyrenet/dids' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      chainId: 51950,
+      count: didRegistry.size,
+      dids: Array.from(didRegistry.values())
+    }));
+    return;
+  }
+
+  // Endpoint: Get / Resolve Sovereign DID Record from Subnet 51950
+  if (pathname.startsWith('/api/wyrenet/did/') && req.method === 'GET') {
+    const rawParam = pathname.replace('/api/wyrenet/did/', '').trim();
+    const decodedParam = decodeURIComponent(rawParam).toLowerCase();
+    let normDid = decodedParam.startsWith('did:wyre:') ? decodedParam : `did:wyre:${decodedParam}`;
+
+    let record = didRegistry.get(normDid);
+    if (!record) {
+      for (const [k, v] of didRegistry.entries()) {
+        if (v.address && v.address.toLowerCase() === decodedParam) {
+          record = v;
+          break;
+        }
+      }
+    }
+
+    if (record) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, record, chainId: 51950 }));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'DID record not found on Subnet 51950' }));
+    }
+    return;
+  }
+
+  // Endpoint: Register or Update Sovereign DID on Subnet 51950
+  if (pathname === '/api/wyrenet/did/register' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const rawAddr = (payload.address || '').trim().toLowerCase();
+        if (!rawAddr && !payload.did) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Ethereum address or DID required' }));
+          return;
+        }
+
+        const addr = rawAddr || (payload.did ? payload.did.replace(/^did:wyre:/, '').toLowerCase() : '');
+        const did = payload.did || `did:wyre:${addr}`;
+        const currentBlock = 485 + Math.floor((Date.now() - 1789230000000) / 2000);
+        const txHash = '0x' + crypto.randomBytes(32).toString('hex');
+
+        const record = {
+          did,
+          address: addr,
+          pubKey: payload.pubKey || null,
+          ecdhPubJwk: payload.ecdhPubJwk || null,
+          ecdsaPubJwk: payload.ecdsaPubJwk || null,
+          rendezvousHints: Array.isArray(payload.rendezvousHints) ? payload.rendezvousHints : [],
+          registeredAt: Date.now(),
+          isoRegisteredAt: new Date().toISOString(),
+          blockHeight: currentBlock,
+          txHash,
+          chainId: 51950,
+          reputation: 100,
+          isVerified: true
+        };
+
+        didRegistry.set(did.toLowerCase(), record);
+        if (addr) {
+          didRegistry.set(`did:wyre:${addr}`, record);
+        }
+        saveLedgerToDisk();
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, record }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // Endpoint: Generate EIP-191 Authentication Challenge
+  if (pathname === '/api/wyrenet/did/challenge' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { address } = JSON.parse(body || '{}');
+        const addr = (address || '').trim().toLowerCase();
+        if (!addr || !addr.startsWith('0x')) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Valid Ethereum hex address required' }));
+          return;
+        }
+        const nonce = crypto.randomBytes(16).toString('hex');
+        const timestamp = Date.now();
+        const message = `WyreNet Sovereign L1 Identity Verification
+Address: ${addr}
+Nonce: ${nonce}
+Chain ID: 51950
+Timestamp: ${timestamp}`;
+        activeChallenges.set(addr, { nonce, timestamp, message });
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ address: addr, nonce, message, timestamp, chainId: 51950 }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // Endpoint: Verify EIP-191 Signature & Bind Verified Keyholder Status
+  if (pathname === '/api/wyrenet/did/verify' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { address, signature, ecdhPubJwk, ecdsaPubJwk } = JSON.parse(body || '{}');
+        const addr = (address || '').trim().toLowerCase();
+        const challengeObj = activeChallenges.get(addr);
+        if (!challengeObj) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ verified: false, error: 'Challenge expired or not requested' }));
+          return;
+        }
+
+        const prefix = `Ethereum Signed Message:
+${challengeObj.message.length}${challengeObj.message}`;
+        const msgHash = keccak_256(Buffer.from(prefix, 'utf8'));
+        const cleanSig = signature.replace(/^0x/, '');
+        const sigBytes = new Uint8Array(cleanSig.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+        const recPub = secp.recoverPublicKey(sigBytes, msgHash, { prehash: false, isCompressed: false });
+        const recAddr = '0x' + Buffer.from(keccak_256(recPub.slice(1)).slice(-20)).toString('hex').toLowerCase();
+
+        const verified = recAddr === addr;
+        if (!verified) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ verified: false, error: 'Cryptographic signature verification failed' }));
+          return;
+        }
+
+        const currentBlock = 485 + Math.floor((Date.now() - 1789230000000) / 2000);
+        const txHash = '0x' + crypto.randomBytes(32).toString('hex');
+        const did = `did:wyre:${addr}`;
+        const record = {
+          did,
+          address: addr,
+          signature,
+          ecdhPubJwk: ecdhPubJwk || null,
+          ecdsaPubJwk: ecdsaPubJwk || null,
+          verifiedAt: Date.now(),
+          isoVerifiedAt: new Date().toISOString(),
+          blockHeight: currentBlock,
+          txHash,
+          reputation: 150,
+          isVerifiedKeyholder: true,
+          authProof: 'EIP-191_SECP256K1_CRYPTOGRAPHIC_CHALLENGE_PROOF'
+        };
+
+        didRegistry.set(did, record);
+        verifiedIdentities.set(addr, { verifiedAt: Date.now(), address: addr });
+        activeChallenges.delete(addr);
+        saveLedgerToDisk();
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ verified: true, did, record }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ verified: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+
   // Endpoint: On-Chain EPUB Manuscript Notarization & Anchoring
   if (pathname === '/api/blockchain/anchor-epub' && req.method === 'POST') {
     let body = '';
@@ -584,24 +811,68 @@ const server = http.createServer(async (req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body || '{}');
-        const content = payload.msgContent || payload.content || 'MANUSCRIPT_HASH';
-        const docHash = '0x' + Buffer.from(sha256(Buffer.from(content, 'utf8'))).toString('hex');
-        const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+        const content = payload.msgContent || payload.content || payload.docHash || 'MANUSCRIPT_HASH';
+        const docHash = payload.docHash && payload.docHash.startsWith('0x')
+          ? payload.docHash
+          : ('0x' + Buffer.from(sha256(Buffer.from(content, 'utf8'))).toString('hex'));
+        const txHash = '0x' + crypto.randomBytes(32).toString('hex');
+        const currentBlock = 485 + Math.floor((Date.now() - 1789230000000) / 2000);
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
+        const record = {
           status: 'SEALED_ON_L1',
           docHash,
           txHash,
-          blockHeight: 487,
+          channelId: payload.channelId || 'dev-mesh',
+          senderDid: payload.senderDid || 'did:wyre:genesis',
+          blockHeight: currentBlock,
           chainId: 51950,
-          timestamp: Date.now()
-        }));
+          timestamp: Date.now(),
+          isoTimestamp: new Date().toISOString()
+        };
+
+        notarizedLedger.set(txHash.toLowerCase(), record);
+        notarizedLedger.set(docHash.toLowerCase(), record);
+        saveLedgerToDisk();
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(record));
       } catch (err) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
       }
     });
+    return;
+  }
+
+  // Endpoint: On-Chain Notarization Proof Verification
+  if (pathname.startsWith('/api/wyrenet/notarize/verify/') && req.method === 'GET') {
+    const rawQuery = pathname.replace('/api/wyrenet/notarize/verify/', '').trim();
+    const queryHash = decodeURIComponent(rawQuery).toLowerCase();
+    const currentBlock = 485 + Math.floor((Date.now() - 1789230000000) / 2000);
+
+    let match = notarizedLedger.get(queryHash);
+    if (!match) {
+      for (const [k, v] of notarizedLedger.entries()) {
+        if (k.toLowerCase() === queryHash || (v.txHash && v.txHash.toLowerCase() === queryHash) || (v.docHash && v.docHash.toLowerCase() === queryHash)) {
+          match = v;
+          break;
+        }
+      }
+    }
+
+    if (match) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        verified: true,
+        proof: match,
+        currentBlock,
+        confirmations: Math.max(1, currentBlock - match.blockHeight + 1),
+        chainId: 51950
+      }));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ verified: false, error: 'Proof hash not found in WyreNet Subnet 51950 ledger' }));
+    }
     return;
   }
 

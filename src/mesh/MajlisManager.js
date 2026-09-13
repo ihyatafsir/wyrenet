@@ -18,15 +18,15 @@ class MajlisManager {
       id: 'space-public-mesh',
       name: 'WYRESUP',
       arabicName: 'مَجْلِس وَايِرْسَب',
-      icon: '🌐',
+      icon: '[MESH]',
       description: 'The root decentralized gossip mesh for WyreSup nodes.',
       channels: [
         {
           id: 'dm-antigravity',
-          name: '🤖 antigravity',
+          name: '[AI] antigravity',
           type: 'text',
-          icon: '🤖',
-          topic: '🔒 Private AI Pair-Programming Session (رَفِيقُكَ المُسَاعِد) — Prompt Antigravity directly in DM.'
+          icon: '[AI]',
+          topic: '[SECURE] Private AI Pair-Programming Session (رَفِيقُكَ المُسَاعِد) — Prompt Antigravity directly in DM.'
         },
         {
           id: 'chan-general',
@@ -181,7 +181,7 @@ class MajlisManager {
           id: 'chan-voice-lounge',
           name: 'voice-lounge-sawt',
           type: 'voice',
-          icon: '🔊',
+          icon: '[VOICE]',
           topic: 'P2P voice notes & Sawt transmission exchange.'
         }
       ]
@@ -192,7 +192,7 @@ class MajlisManager {
       id: 'space-cyber-citadel',
       name: 'Miftah Citadel',
       arabicName: 'قَلْعَة المِفْتَاح',
-      icon: '🛡️',
+      icon: '[ZBAT]',
       description: 'Forward-secrecy, Thaqb puncturable keys & Nagham DTMF experiments.',
       channels: [
         {
@@ -206,7 +206,7 @@ class MajlisManager {
           id: 'chan-nagham-dtmf',
           name: 'nagham-acoustic',
           type: 'voice',
-          icon: '🎵',
+          icon: '[AUDIO]',
           topic: 'DTMF acoustic voice-channel key exchange.'
         }
       ]
@@ -219,7 +219,7 @@ class MajlisManager {
       id: spaceId,
       name: data.name,
       arabicName: data.arabicName || data.name,
-      icon: data.icon || '💬',
+      icon: data.icon || '[#]',
       description: data.description || '',
       createdAt: Date.now(),
       creatorId: data.creatorId || 'system',
@@ -254,7 +254,7 @@ class MajlisManager {
       id: channelId,
       name: channelData.name.toLowerCase().replace(/[^a-z0-9_-]/g, '-'),
       type: channelData.type || 'text', // 'text' | 'voice' | 'announcement'
-      icon: channelData.icon || (channelData.type === 'voice' ? '🔊' : '#'),
+      icon: channelData.icon || (channelData.type === 'voice' ? '[VOICE]' : '#'),
       topic: channelData.topic || ''
     };
 

@@ -1,0 +1,129 @@
+{
+  "chainId": 51950,
+  "dids": {
+    "did:wyre:0x471c852d254a67f36c129f2386ca21c31840dea4": {
+      "did": "did:wyre:0x471c852d254a67f36c129f2386ca21c31840dea4",
+      "address": "0x471c852d254a67f36c129f2386ca21c31840dea4",
+      "pubKey": null,
+      "ecdhPubJwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "test-x",
+        "y": "test-y"
+      },
+      "ecdsaPubJwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "test-sign-x",
+        "y": "test-sign-y"
+      },
+      "rendezvousHints": [
+        "khalid@mesh"
+      ],
+      "registeredAt": 1789287711054,
+      "isoRegisteredAt": "2026-09-13T08:21:51.054Z",
+      "blockHeight": 29340,
+      "txHash": "0xd7aaf274b718e5e3ccc0cafa812a487767cde2c3b8968df4eee7290104fd8b50",
+      "chainId": 51950,
+      "reputation": 100,
+      "isVerified": true
+    },
+    "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7": {
+      "did": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "address": "0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "pubKey": null,
+      "ecdhPubJwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "x-alice-sovereign-ecdh",
+        "y": "y-alice-sovereign-ecdh"
+      },
+      "ecdsaPubJwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "x-alice-sovereign-ecdsa",
+        "y": "y-alice-sovereign-ecdsa"
+      },
+      "rendezvousHints": [
+        "alice@mesh",
+        "alice@wyrenet-direct"
+      ],
+      "registeredAt": 1789287848430,
+      "isoRegisteredAt": "2026-09-13T08:24:08.430Z",
+      "blockHeight": 29409,
+      "txHash": "0x7c5dcbb63a2fe66fcae233a8bdb7cf41ccf709659d7b36bbc59d9c8d970e8853",
+      "chainId": 51950,
+      "reputation": 100,
+      "isVerified": true
+    }
+  },
+  "notarizations": {
+    "0x4bd178488136ed6267d84d4dd5a8a99216b549f5c4f43abee06bc6fab75f9a85": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x6d3b171350539e0c2aacb2741ad167e567f1460b17936d7732f9a6f91d12f31e",
+      "txHash": "0x4bd178488136ed6267d84d4dd5a8a99216b549f5c4f43abee06bc6fab75f9a85",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x471c852d254a67f36c129f2386ca21c31840dea4",
+      "blockHeight": 29340,
+      "chainId": 51950,
+      "timestamp": 1789287711060,
+      "isoTimestamp": "2026-09-13T08:21:51.060Z"
+    },
+    "0x6d3b171350539e0c2aacb2741ad167e567f1460b17936d7732f9a6f91d12f31e": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x6d3b171350539e0c2aacb2741ad167e567f1460b17936d7732f9a6f91d12f31e",
+      "txHash": "0x4bd178488136ed6267d84d4dd5a8a99216b549f5c4f43abee06bc6fab75f9a85",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x471c852d254a67f36c129f2386ca21c31840dea4",
+      "blockHeight": 29340,
+      "chainId": 51950,
+      "timestamp": 1789287711060,
+      "isoTimestamp": "2026-09-13T08:21:51.060Z"
+    },
+    "0x2c17c692eb973a9272f52f16fa3ff1c324b5995f31dd14983f4cf3829b40df3a": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x9b231ec6499e1abc625f3bc6aedbff0c117f703fb1d6d8efa4bce9ce53a74b40",
+      "txHash": "0x2c17c692eb973a9272f52f16fa3ff1c324b5995f31dd14983f4cf3829b40df3a",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "blockHeight": 29409,
+      "chainId": 51950,
+      "timestamp": 1789287848433,
+      "isoTimestamp": "2026-09-13T08:24:08.433Z"
+    },
+    "0x9b231ec6499e1abc625f3bc6aedbff0c117f703fb1d6d8efa4bce9ce53a74b40": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0x9b231ec6499e1abc625f3bc6aedbff0c117f703fb1d6d8efa4bce9ce53a74b40",
+      "txHash": "0x2c17c692eb973a9272f52f16fa3ff1c324b5995f31dd14983f4cf3829b40df3a",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x89205a3e3b2a69de6dbf7f01ed13b2108b2c43e7",
+      "blockHeight": 29409,
+      "chainId": 51950,
+      "timestamp": 1789287848433,
+      "isoTimestamp": "2026-09-13T08:24:08.433Z"
+    },
+    "0xa8d3f0b624df1e83b193794a9e2609490c322f0ddab3699ef9ee15201b694851": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+      "txHash": "0xa8d3f0b624df1e83b193794a9e2609490c322f0ddab3699ef9ee15201b694851",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x471c852d254a67f36c129f2386ca21c31840dea4",
+      "blockHeight": 29412,
+      "chainId": 51950,
+      "timestamp": 1789287854794,
+      "isoTimestamp": "2026-09-13T08:24:14.794Z"
+    },
+    "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890": {
+      "status": "SEALED_ON_L1",
+      "docHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+      "txHash": "0xa8d3f0b624df1e83b193794a9e2609490c322f0ddab3699ef9ee15201b694851",
+      "channelId": "dev-mesh",
+      "senderDid": "did:wyre:0x471c852d254a67f36c129f2386ca21c31840dea4",
+      "blockHeight": 29412,
+      "chainId": 51950,
+      "timestamp": 1789287854794,
+      "isoTimestamp": "2026-09-13T08:24:14.794Z"
+    }
+  },
+  "updatedAt": "2026-09-13T08:24:14.794Z"
+}
