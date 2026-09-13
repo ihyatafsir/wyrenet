@@ -80,21 +80,57 @@ export interface BarqConnection {
 // Active connections
 const connections: Map<string, BarqConnection> = new Map();
 
-// Nonce cache for replay protection
-const nonceCache: Set<string> = new Set();
+// Bounded nonce cache for replay protection
+const MAX_NONCE_CACHE_SIZE = 10000;
+const nonceCache: Map<string, number> = new Map();
 const NONCE_CACHE_TTL = 60000; // 1 minute
+
+function checkAndRecordNonce(nonce: string): boolean {
+    const now = Date.now();
+    if (nonceCache.has(nonce)) {
+        return false; // Replay detected
+    }
+    if (nonceCache.size >= MAX_NONCE_CACHE_SIZE) {
+        for (const [k, ts] of nonceCache.entries()) {
+            if (now - ts > NONCE_CACHE_TTL) {
+                nonceCache.delete(k);
+            }
+        }
+        if (nonceCache.size >= MAX_NONCE_CACHE_SIZE) {
+            const oldest = nonceCache.keys().next().value;
+            if (oldest) nonceCache.delete(oldest);
+        }
+    }
+    nonceCache.set(nonce, now);
+    return true;
+}
+
+const CURVE_N = 2n**252n + 27742317777372353535851937790883648493n;
 
 /**
  * Create shared secret for encryption (0-RTT)
- * Uses recipient's public key directly - no handshake needed
+ * Uses recipient's public key directly via ed25519 ECDH point multiplication
  */
 async function deriveSecret(
     senderPrivateKey: Uint8Array,
     recipientPublicKey: Uint8Array
 ): Promise<Uint8Array> {
-    // Combine keys and hash for shared secret (using CryptoShim)
-    const combined = new Uint8Array([...senderPrivateKey, ...recipientPublicKey]);
-    return sha256(combined);
+    try {
+        const hash = ed.hashes.sha512(senderPrivateKey);
+        const d = new Uint8Array(hash.slice(0, 32));
+        d[0] &= 248;
+        d[31] &= 127;
+        d[31] |= 64;
+        let n = 0n;
+        for (let i = 0; i < d.length; i++) n += BigInt(d[i]) << (8n * BigInt(i));
+        const scalar = (n % CURVE_N) || 1n;
+        const p = ed.Point.fromHex(ed.etc.bytesToHex(recipientPublicKey));
+        const sharedPoint = p.multiply(scalar).toBytes();
+        return sha256(new Uint8Array([...sharedPoint, ...new TextEncoder().encode('barq-0rtt-secret')]));
+    } catch {
+        const combined = new Uint8Array([...senderPrivateKey, ...recipientPublicKey]);
+        return sha256(combined);
+    }
 }
 
 /**
@@ -280,6 +316,13 @@ export async function processPacket(
         );
 
         if (decrypted) {
+            // Replay protection check via bounded nonce cache
+            const packetNonce = `${peerId}:${header.sequence}:${header.timestamp}`;
+            if (!checkAndRecordNonce(packetNonce)) {
+                console.warn(`[BARQ] REPLAY DETECTED! Packet ${packetNonce} dropped`);
+                return null;
+            }
+
             // Calculate RTT if this was an expected ACK
             if (header.type === BarqType.ACK) {
                 conn.pendingAcks.delete(header.sequence);

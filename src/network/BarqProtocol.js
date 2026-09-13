@@ -45,17 +45,49 @@ var BarqType;
 })(BarqType || (exports.BarqType = BarqType = {}));
 // Active connections
 const connections = new Map();
-// Nonce cache for replay protection
-const nonceCache = new Set();
+const MAX_NONCE_CACHE_SIZE = 10000;
+const nonceCache = new Map();
 const NONCE_CACHE_TTL = 60000; // 1 minute
-/**
- * Create shared secret for encryption (0-RTT)
- * Uses recipient's public key directly - no handshake needed
- */
+
+function checkAndRecordNonce(nonce) {
+    const now = Date.now();
+    if (nonceCache.has(nonce)) {
+        return false;
+    }
+    if (nonceCache.size >= MAX_NONCE_CACHE_SIZE) {
+        for (const [k, ts] of nonceCache.entries()) {
+            if (now - ts > NONCE_CACHE_TTL) {
+                nonceCache.delete(k);
+            }
+        }
+        if (nonceCache.size >= MAX_NONCE_CACHE_SIZE) {
+            const oldest = nonceCache.keys().next().value;
+            if (oldest) nonceCache.delete(oldest);
+        }
+    }
+    nonceCache.set(nonce, now);
+    return true;
+}
+
+const CURVE_N = 2n ** 252n + 27742317777372353535851937790883648493n;
+
 async function deriveSecret(senderPrivateKey, recipientPublicKey) {
-    // Combine keys and hash for shared secret (using CryptoShim)
-    const combined = new Uint8Array([...senderPrivateKey, ...recipientPublicKey]);
-    return (0, CryptoShim_1.sha256)(combined);
+    try {
+        const hash = ed.hashes.sha512(senderPrivateKey);
+        const d = new Uint8Array(hash.slice(0, 32));
+        d[0] &= 248;
+        d[31] &= 127;
+        d[31] |= 64;
+        let n = 0n;
+        for (let i = 0; i < d.length; i++) n += BigInt(d[i]) << (8n * BigInt(i));
+        const scalar = (n % CURVE_N) || 1n;
+        const p = ed.Point.fromHex(ed.etc.bytesToHex(recipientPublicKey));
+        const sharedPoint = p.multiply(scalar).toBytes();
+        return (0, CryptoShim_1.sha256)(new Uint8Array([...sharedPoint, ...new TextEncoder().encode('barq-0rtt-secret')]));
+    } catch {
+        const combined = new Uint8Array([...senderPrivateKey, ...recipientPublicKey]);
+        return (0, CryptoShim_1.sha256)(combined);
+    }
 }
 /**
  * Encode header to bytes
@@ -194,6 +226,11 @@ async function processPacket(data) {
         const payload = data.slice(exports.BARQ_HEADER_SIZE);
         const decrypted = await decryptPayload(conn.sharedSecret, header.sequence, payload);
         if (decrypted) {
+            const packetNonce = `${peerId}:${header.sequence}:${header.timestamp}`;
+            if (!checkAndRecordNonce(packetNonce)) {
+                console.warn(`[BARQ] REPLAY DETECTED! Packet ${packetNonce} dropped`);
+                return null;
+            }
             // Calculate RTT if this was an expected ACK
             if (header.type === BarqType.ACK) {
                 conn.pendingAcks.delete(header.sequence);

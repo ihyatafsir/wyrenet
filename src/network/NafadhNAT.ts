@@ -103,9 +103,20 @@ export class Nafidh extends EventEmitter {
             stunRequest.writeUInt16BE(0, 2);       // Message Length
             // Magic cookie
             stunRequest.writeUInt32BE(0x2112A442, 4);
-            // Transaction ID (random)
-            for (let i = 8; i < 20; i++) {
-                stunRequest[i] = Math.floor(Math.random() * 256);
+            // Transaction ID (CSPRNG random per RFC 5389)
+            if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+                const txBytes = new Uint8Array(12);
+                crypto.getRandomValues(txBytes);
+                Buffer.from(txBytes).copy(stunRequest, 8);
+            } else {
+                try {
+                    const nodeCrypto = require('crypto');
+                    nodeCrypto.randomBytes(12).copy(stunRequest, 8);
+                } catch {
+                    for (let i = 8; i < 20; i++) {
+                        stunRequest[i] = Math.floor(Math.random() * 256);
+                    }
+                }
             }
 
             const timeout = setTimeout(() => {

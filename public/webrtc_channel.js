@@ -31,23 +31,21 @@
 
   class WyreWebRtcChannel {
     constructor(configuration = {}) {
+      const defaultIceServers = [
+        { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
+        { urls: ["stun:stun.cloudflare.com:3478"] }
+      ];
+      // Dynamic Sovereign TURN configuration: avoid static hardcoded plaintext credentials
+      if (Array.isArray(configuration.iceServers) && configuration.iceServers.length > 0) {
+        defaultIceServers.push(...configuration.iceServers);
+      } else if (typeof window !== "undefined" && Array.isArray(window.__WYRENET_ICE_SERVERS__)) {
+        defaultIceServers.push(...window.__WYRENET_ICE_SERVERS__);
+      }
+
       this.rtcConfig = configuration.rtcConfig || {
         bundlePolicy: "max-bundle",
         rtcpMuxPolicy: "require",
-        iceServers: [
-          { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
-          { urls: ["stun:stun.cloudflare.com:3478"] },
-          { urls: ["stun:openrelay.metered.ca:80"] },
-          {
-            urls: [
-              "turn:openrelay.metered.ca:80",
-              "turn:openrelay.metered.ca:443",
-              "turns:openrelay.metered.ca:443?transport=tcp"
-            ],
-            username: "openrelay",
-            credential: "openrelay"
-          }
-        ],
+        iceServers: defaultIceServers,
         iceCandidatePoolSize: 10,
         sdpSemantics: "unified-plan"
       };

@@ -84,11 +84,30 @@ class NafaqTunnel extends EventEmitter {
     }
 
     /**
+     * Generate cryptographically secure token using CSPRNG
+     */
+    private generateSecureToken(prefix: string, bytesLen: number = 6): string {
+        if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
+            const buf = new Uint8Array(bytesLen);
+            globalThis.crypto.getRandomValues(buf);
+            const hex = Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('');
+            return `${prefix}_${Date.now()}_${hex}`;
+        }
+        try {
+            const nodeCrypto = require('crypto');
+            return `${prefix}_${Date.now()}_${nodeCrypto.randomBytes(bytesLen).toString('hex')}`;
+        } catch {
+            const fallback = Math.floor(Math.random() * 0xFFFFFFFFFF).toString(16);
+            return `${prefix}_${Date.now()}_${fallback}`;
+        }
+    }
+
+    /**
      * أَنْشِئ نَفَق (Anshi' Nafaq) - Create a new tunnel
      * From Lisan: "أَنْشَأَ - to create, establish"
      */
     createTunnel(config: Omit<TunnelConfig, 'id'>): string {
-        const id = `nafaq_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        const id = this.generateSecureToken('nafaq', 6);
 
         const tunnel: TunnelConfig = {
             ...config,
@@ -170,7 +189,7 @@ class NafaqTunnel extends EventEmitter {
         const tunnel = this.tunnels.get(tunnelId);
         if (!tunnel) return;
 
-        const connId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+        const connId = this.generateSecureToken('conn', 4);
 
         const connection: ActiveConnection = {
             id: connId,

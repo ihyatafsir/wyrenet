@@ -227,6 +227,15 @@ export async function tashfir(
 function thaqb(miftah: Miftah, sequence: number): void {
     miftah.puncturedSequences.add(sequence);
     miftah.lastPunctured = Date.now();
+    // Bounded pruning: maintain sliding window to prevent unbounded memory growth
+    if (miftah.puncturedSequences.size > MAX_PUNCTURES * 2) {
+        const minKept = Math.max(0, miftah.currentSequence - MAX_PUNCTURES);
+        for (const seq of miftah.puncturedSequences) {
+            if (seq < minKept) {
+                miftah.puncturedSequences.delete(seq);
+            }
+        }
+    }
     console.log(`[MIFTAH] ثَقْب (Thaqb) - Punctured seq=${sequence}`);
 }
 
